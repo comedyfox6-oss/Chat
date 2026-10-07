@@ -91,7 +91,7 @@ function loginByCode(){const code=$("loginCode").value.trim().toUpperCase(),a=JS
 function togglePlus(){const m=$("plusMenu"),b=document.querySelector('.bottom .nav[onclick="togglePlus()"]'),a=document.querySelector(".app");if(m.style.display==="block"){m.style.display="none";return}const r=b.getBoundingClientRect(),ar=a.getBoundingClientRect(),w=190;let left=r.left-ar.left+r.width/2-w/2;left=Math.max(8,Math.min(left,ar.width-w-8));m.style.left=left+"px";m.style.right="auto";m.style.bottom=(ar.bottom-r.top+9)+"px";m.style.display="block"}function closePlus(){$("plusMenu").style.display="none"}
 function createAI(){closePlus();let base="Новый ИИ",name=base,i=2;while(aiProfiles.some(x=>x.name.toLowerCase()===name.toLowerCase()))name=base+" "+i++;aiProfiles.push({name});localStorage.setItem("aiProfiles",JSON.stringify(aiProfiles));openChat(name,true)}
 function createGroup(){closePlus();const name=(prompt("Название группы")||"").trim().slice(0,40);if(!name)return;if(groups.some(x=>x.name.toLowerCase()===name.toLowerCase())){alert("Группа с таким названием уже есть.");return}const raw=prompt("Участники через запятую, например: @sanya, @alex")||"";const members=raw.split(",").map(x=>x.trim().replace(/^@/,"")).filter(Boolean).slice(0,50);const group={id:"g"+Date.now().toString(36),name,members};groups.push(group);localStorage.setItem("groups",JSON.stringify(groups));openChat(name,false,true)}
-function renderFriends(){removeComposer();$("view").innerHTML='<section class="screen"><div class="section-title">Всегда рядом</div><div class="user" onclick="openChat(\'Харлоу\',true)"><div class="avatar" style="display:grid;place-items:center"></div><div><b>Харлоу</b><div class="muted">ассистент</div></div></div>'+(aiProfiles.length?'<div class="section-title" style="margin-top:24px">Мои ИИ</div>': '')+aiProfiles.map(x=>'<div class="user" onclick="openChat(\''+x.name.replace(/'/g,"\\\\'")+'\',true)"><div class="avatar" style="display:grid;place-items:center"></div><div><b>'+x.name+'</b><div class="muted">бот</div></div></div>').join('')+'<div class="section-title" style="margin-top:24px">Люди</div><button class="btn secondary" style="width:100%" onclick="go(\'search\')"> Найти друга по @username</button></section>'}
+function renderFriends(){removeComposer();$("view").innerHTML='<section class="screen"><div class="section-title">Всегда рядом</div><div class="user" onclick="openChat(\'Бузя\',true)"><div class="avatar" style="display:grid;place-items:center"></div><div><b>Бузя</b><div class="muted">ассистент</div></div></div>'+(aiProfiles.length?'<div class="section-title" style="margin-top:24px">Мои ИИ</div>': '')+aiProfiles.map(x=>'<div class="user" onclick="openChat(\''+x.name.replace(/'/g,"\\\\'")+'\',true)"><div class="avatar" style="display:grid;place-items:center"></div><div><b>'+x.name+'</b><div class="muted">бот</div></div></div>').join('')+'<div class="section-title" style="margin-top:24px">Люди</div><button class="btn secondary" style="width:100%" onclick="go(\'search\')"> Найти друга по @username</button></section>'}
 function regenerateCode(){profile.identityCode=makeCode();localStorage.setItem("profile",JSON.stringify(profile));const a=JSON.parse(localStorage.getItem("account")||"null");if(a){a.identityCode=profile.identityCode;localStorage.setItem("account",JSON.stringify(a))}$("identityCode").textContent=profile.identityCode}
 let avatarImage=null,avatarScale=1,avatarX=0,avatarY=0,avatarDragging=false,avatarStartX=0,avatarStartY=0,avatarBaseX=0,avatarBaseY=0;
 function drawAvatarEditor(){const canvas=$("avatarCanvas"),ctx=canvas.getContext("2d"),s=600;ctx.clearRect(0,0,s,s);ctx.fillStyle="#090b10";ctx.fillRect(0,0,s,s);if(!avatarImage)return;const cover=Math.max(s/avatarImage.width,s/avatarImage.height),scale=cover*avatarScale,w=avatarImage.width*scale,h=avatarImage.height*scale;ctx.drawImage(avatarImage,(s-w)/2+avatarX,(s-h)/2+avatarY,w,h)}
@@ -113,12 +113,12 @@ function renderChats(){
     const key=(isGroup?"group:":"chat:")+name.toLowerCase();
     if(seen.has(key))return;
     const items=loadMessages(name);
-    if(items.length||name==="Харлоу"||aiProfiles.some(x=>x.name===name)||isGroup){
+    if(items.length||name==="Бузя"||aiProfiles.some(x=>x.name===name)||isGroup){
       seen.add(key);
       chats.push({name,isAI,isGroup,last:items.length?items[items.length-1]:null});
     }
   };
-  add("Харлоу",true);
+  add("Бузя",true);
   aiProfiles.forEach(x=>add(x.name,true));
   groups.forEach(x=>add(x.name,false,true));
   Object.keys(localStorage).filter(k=>k.indexOf("chat:")===0).forEach(k=>{
@@ -149,7 +149,7 @@ function closeChatMenu(){const m=$("chatMenu");if(m)m.classList.remove("open")}
 function renderSearch(){$("view").innerHTML='<section class="screen"><div class="search"><input id="q" placeholder="Найти по юзу…"><button class="btn" onclick="searchUsers()">Найти</button></div><div id="results" class="muted">Введи @username.</div></section>';setTimeout(()=>$("q").focus(),0)}
 function searchUsers(){const q=($("q").value||"").trim().replace(/^@/,"").toLowerCase();const r=$("results");if(!q){r.textContent="Введи @username.";return}r.innerHTML='<div class="user" onclick="openFound(\''+q+'\')"><img class="avatar" src="'+defaultAvatar+'"><div><b>@'+q+'</b><div class="muted">чел.</div></div></div>'}
 function openFound(u){$("view").innerHTML='<section class="profile"><img class="bigavatar" src="'+defaultAvatar+'"><h2>@'+u+'</h2><div class="muted">Профиль пользователя</div><br><button class="btn" onclick="openChat(\''+u+'\')">Написать</button></section>'}
-function isAssistant(u){return u==="LLM7"||u==="Харлоу"}
+function isAssistant(u){return u==="LLM7"||u==="Бузя"}
 function getTag(u,isAI=false){return isAssistant(u)?"ассистент":isAI?"бот":"чел."}
 function renameCurrentAI(){if(!currentChatIsAI||isAssistant(currentChat))return;const next=prompt("Новое имя ИИ",currentChat);if(!next)return;const name=next.trim().slice(0,40);if(!name||isAssistant(name))return;const found=aiProfiles.find(x=>x.name===currentChat);if(found)found.name=name;localStorage.setItem("aiProfiles",JSON.stringify(aiProfiles));const oldKey=chatKey(currentChat),items=loadMessages(currentChat);localStorage.setItem(chatKey(name),JSON.stringify(items));if(oldKey!==chatKey(name))localStorage.removeItem(oldKey);currentChat=name;openChat(name,true)}function openChat(u,isAI=false,isGroup=false){
 removeComposer();currentChat=u;currentChatIsAI=isAI;currentChatIsGroup=isGroup;closePlus();closeMore();
