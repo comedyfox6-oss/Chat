@@ -39,6 +39,22 @@ header{background:rgba(255,255,255,.88);border-bottom:1px solid #dfe1e6;box-shad
 .composer{background:rgba(255,255,255,.96);border-top-color:#dfe1e6}.attach{background:#eff0f3;border:1px solid #d8dae1;color:#575b66}.attach:hover{background:#e7e5f1}#send{background:linear-gradient(135deg,#806fd0,#6d5cbd);box-shadow:0 6px 16px #7666c82b}
 .msg{box-shadow:0 3px 12px #4b4d5510}.me{background:linear-gradient(135deg,#8372d3,#6f60bf);color:#fff}.them{background:#e7e8ec;color:#30323a}
 .drawer{background:rgba(55,57,65,.22)}.panel{background:linear-gradient(180deg,#fff,#f5f6f7);border-right-color:#dfe1e6}.drawer-avatar{box-shadow:0 10px 28px #4b4d5520}.avatar-editor-box{background:#fff;border-color:#dfe1e6}
+/* soft neon accents */
+:root{--neon-purple:#8d7be8;--neon-salad:#b5c96d}
+.app{background:linear-gradient(180deg,#fff 0%,#f7f7f8 58%,#f0f2e8 100%)}
+header{position:relative}
+header:after{content:"";position:absolute;left:18px;right:18px;bottom:-1px;height:1px;background:linear-gradient(90deg,transparent,var(--neon-purple),var(--neon-salad),transparent);opacity:.55;box-shadow:0 0 7px #9b8bea44}
+.btn,#send{background:linear-gradient(135deg,#7d6bd1 0%,#8a78d8 48%,#a5b968 135%);box-shadow:0 6px 18px #7666c82b,0 0 10px #9a8be51c}
+.btn:hover,#send:hover{box-shadow:0 8px 22px #7666c83d,0 0 13px #9a8be52b;transform:translateY(-1px)}
+.nav.active{background:linear-gradient(135deg,#eeeafb,#e8e7f6 58%,#edf0df);box-shadow:inset 0 0 0 1px #d5cef0,0 4px 14px #7666c818}
+.user:hover{box-shadow:0 7px 20px #7666c814,0 0 0 1px #b4bd7a22}
+.me{background:linear-gradient(135deg,#8170d3,#7563c6 62%,#8e9f62)}
+.composer:before{content:"";position:absolute;left:12%;right:12%;top:-1px;height:1px;background:linear-gradient(90deg,transparent,#9a8be5,#b3c76b,transparent);opacity:.38}
+.composer{position:relative}
+#plusMenu,.menu,.chat-menu{box-shadow:0 16px 40px #4b4d5525,0 0 18px #8f82d51a!important}
+.avatar-editor-box{box-shadow:0 20px 70px #4b4d5524,0 0 22px #8f82d51a}
+#auth{background:linear-gradient(135deg,#f5f6f7,#ececf1 58%,#e9ecd9)!important}
+#auth>div{background:rgba(255,255,255,.92)!important;border-color:#dfe1e6!important;box-shadow:0 18px 50px #4b4d5518,0 0 22px #8f82d51a}
 </style>
 </head>
 <body>
@@ -72,7 +88,7 @@ function makeCode(){return Array.from(crypto.getRandomValues(new Uint8Array(12))
 function logout(){localStorage.removeItem("sessionActive");closeMore();closeProfile();$("auth").style.display="flex";showLogin();$("authMsg").textContent="Сессия завершена на этом устройстве."}function registerAccount(){const u=$("regUser").value.trim().replace(/^@/,"").toLowerCase(),n=$("regName").value.trim(),e=$("regEmail").value.trim().toLowerCase(),p=$("regPass").value;if(!u||!e||!p){$("authMsg").textContent="Заполни юзер, почту и пароль.";return}const code=makeCode();profile={username:u,displayName:n,email:e,avatar:"",bio:"",identityCode:code};localStorage.setItem("profile",JSON.stringify(profile));localStorage.setItem("account",JSON.stringify({username:u,email:e,password:p,identityCode:code}));localStorage.setItem("sessionActive","1");$("auth").style.display="none";renderHeader();renderChats()}
 function login(){const id=$("loginId").value.trim().replace(/^@/,"").toLowerCase(),p=$("loginPass").value,a=JSON.parse(localStorage.getItem("account")||"null");if(!a||p!==a.password||(id!==a.username&&id!==a.email)){$("authMsg").textContent="Неверные данные.";return}localStorage.setItem("sessionActive","1");$("auth").style.display="none";renderHeader();renderChats()}
 function loginByCode(){const code=$("loginCode").value.trim().toUpperCase(),a=JSON.parse(localStorage.getItem("account")||"null");if(!a||code!==a.identityCode){$("authMsg").textContent="Неверный код.";return}localStorage.setItem("sessionActive","1");$("auth").style.display="none";renderHeader();renderChats()}
-function togglePlus(){const m=$("plusMenu"),b=document.querySelector(".bottom .nav"),a=document.querySelector(".app");if(m.style.display==="block"){m.style.display="none";return}const r=b.getBoundingClientRect(),ar=a.getBoundingClientRect(),w=190;let left=r.left-ar.left+r.width/2-w/2;left=Math.max(8,Math.min(left,ar.width-w-8));m.style.left=left+"px";m.style.right="auto";m.style.bottom=(ar.bottom-r.top+9)+"px";m.style.display="block"}function closePlus(){$("plusMenu").style.display="none"}
+function togglePlus(){const m=$("plusMenu"),b=document.querySelector('.bottom .nav[onclick="togglePlus()"]'),a=document.querySelector(".app");if(m.style.display==="block"){m.style.display="none";return}const r=b.getBoundingClientRect(),ar=a.getBoundingClientRect(),w=190;let left=r.left-ar.left+r.width/2-w/2;left=Math.max(8,Math.min(left,ar.width-w-8));m.style.left=left+"px";m.style.right="auto";m.style.bottom=(ar.bottom-r.top+9)+"px";m.style.display="block"}function closePlus(){$("plusMenu").style.display="none"}
 function createAI(){closePlus();let base="Новый ИИ",name=base,i=2;while(aiProfiles.some(x=>x.name.toLowerCase()===name.toLowerCase()))name=base+" "+i++;aiProfiles.push({name});localStorage.setItem("aiProfiles",JSON.stringify(aiProfiles));openChat(name,true)}
 function renderFriends(){removeComposer();$("view").innerHTML='<section class="screen"><div class="section-title">Всегда рядом</div><div class="user" onclick="openChat(\'Харлоу\',true)"><div class="avatar" style="display:grid;place-items:center">🧠</div><div><b>Харлоу</b><div class="muted">ассистент</div></div></div>'+(aiProfiles.length?'<div class="section-title" style="margin-top:24px">Мои ИИ</div>': '')+aiProfiles.map(x=>'<div class="user" onclick="openChat(\''+x.name.replace(/'/g,"\\\\'")+'\',true)"><div class="avatar" style="display:grid;place-items:center">✨</div><div><b>'+x.name+'</b><div class="muted">бот</div></div></div>').join('')+'<div class="section-title" style="margin-top:24px">Люди</div><button class="btn secondary" style="width:100%" onclick="go(\'search\')">👤 Найти друга по @username</button></section>'}
 function regenerateCode(){profile.identityCode=makeCode();localStorage.setItem("profile",JSON.stringify(profile));const a=JSON.parse(localStorage.getItem("account")||"null");if(a){a.identityCode=profile.identityCode;localStorage.setItem("account",JSON.stringify(a))}$("identityCode").textContent=profile.identityCode}
