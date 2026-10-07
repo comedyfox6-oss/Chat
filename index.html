@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Два дебила — P2P чат</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0f1117;color:#eee;font-family:system-ui,-apple-system,Segoe UI,sans-serif;height:100vh;display:flex;justify-content:center}.app{width:min(760px,100%);height:100vh;display:flex;flex-direction:column;background:#171a22}header{padding:14px 16px;border-bottom:1px solid #292e39;display:flex;align-items:center;gap:12px}.dot{width:11px;height:11px;border-radius:50%;background:#777}.dot.on{background:#52d273}h1{font-size:17px;margin:0}.sub{font-size:12px;color:#969eae}#setup{padding:18px;overflow:auto}.card{background:#20242e;border:1px solid #303645;border-radius:14px;padding:15px;margin-bottom:12px}label{font-size:13px;color:#aeb6c5;display:block;margin-bottom:7px}textarea,input{width:100%;background:#11141a;color:#eee;border:1px solid #363d4d;border-radius:10px;padding:10px;font:inherit;resize:vertical}textarea{min-height:100px}.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}button{border:0;border-radius:10px;padding:10px 13px;background:#5b72ff;color:#fff;font-weight:650;cursor:pointer}button.secondary{background:#303643}button.danger{background:#8e3945}small{color:#8e96a6}.hidden{display:none!important}#chat{flex:1;min-height:0;display:flex;flex-direction:column}#messages{flex:1;overflow:auto;padding:18px 14px;display:flex;flex-direction:column;gap:7px}.msg{max-width:78%;padding:9px 12px;border-radius:15px;white-space:pre-wrap;overflow-wrap:anywhere}.me{align-self:flex-end;background:#5269e8}.them{align-self:flex-start;background:#292e39}.time{font-size:10px;opacity:.6;margin-top:3px}.status{padding:6px 14px;font-size:12px;color:#9da6b7}.composer{padding:10px;border-top:1px solid #292e39;display:flex;gap:8px}#text{flex:1;min-height:44px;max-height:130px;resize:none}
+</style>
+</head>
+<body><div class="app">
+<header><span id="dot" class="dot"></span><div><h1>Два дебила 🫵</h1><div id="status" class="sub">Не подключено</div></div></header>
+<section id="setup">
+<div class="card"><b>1. Создать соединение</b><p><small>Первый участник нажимает кнопку и отправляет получившийся код второму.</small></p><button onclick="createOffer()">Создать код</button><textarea id="offerOut" readonly placeholder="Код приглашения…"></textarea></div>
+<div class="card"><b>2. Ответ друга</b><p><small>Первый участник вставляет сюда ответный код.</small></p><textarea id="answerIn" placeholder="Вставь ответ друга…"></textarea><div class="row"><button onclick="acceptAnswer()">Подключиться</button></div></div>
+<div class="card"><b>Если тебя пригласили</b><p><small>Вставь код приглашения и создай ответ.</small></p><textarea id="offerIn" placeholder="Вставь код приглашения…"></textarea><button onclick="createAnswer()">Ответить на приглашение</button><textarea id="answerOut" readonly placeholder="Ответный код…"></textarea></div>
+<div class="card"><button class="secondary" onclick="showChat()">Открыть чат</button><button class="danger" onclick="location.reload()">Сбросить</button></div>
+</section>
+<section id="chat" class="hidden"><div id="messages"></div><div id="chatStatus" class="status">Соединение устанавливается…</div><div class="composer"><textarea id="text" placeholder="Напиши что-нибудь гениальное…" rows="1"></textarea><button onclick="sendMsg()">➤</button></div></section>
+</div>
+<script>
+let pc,dc;const $=id=>document.getElementById(id);
+function setStatus(s,on=false){$('status').textContent=s;$('chatStatus').textContent=s;$('dot').className='dot '+(on?'on':'')}
+function b64(o){return btoa(unescape(encodeURIComponent(JSON.stringify(o))))}function unb64(s){return JSON.parse(decodeURIComponent(escape(atob(s.trim()))))}
+function waitIce(){return new Promise(resolve=>{if(!pc||pc.iceGatheringState==='complete')return resolve();pc.onicecandidate=()=>{if(pc.iceGatheringState==='complete')resolve()};setTimeout(resolve,5000)})}
+function makePC(){pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});pc.onconnectionstatechange=()=>{if(pc.connectionState==='connected'){setStatus('Подключено напрямую',true);showChat()}};return pc}
+function setupChannel(){dc.onopen=()=>{setStatus('Подключено напрямую',true);showChat()};dc.onclose=()=>setStatus('Соединение закрыто');dc.onmessage=e=>addMsg(e.data,'them')}
+async function createOffer(){makePC();dc=pc.createDataChannel('chat');setupChannel();const o=await pc.createOffer();await pc.setLocalDescription(o);await waitIce();$('offerOut').value=b64(pc.localDescription);setStatus('Код приглашения готов')}
+async function createAnswer(){makePC();pc.ondatachannel=e=>{dc=e.channel;setupChannel()};try{await pc.setRemoteDescription(unb64($('offerIn').value));const a=await pc.createAnswer();await pc.setLocalDescription(a);await waitIce();$('answerOut').value=b64(pc.localDescription);setStatus('Ответ готов — отправь его первому участнику')}catch(e){alert('Не удалось прочитать код: '+e)}}
+async function acceptAnswer(){try{await pc.setRemoteDescription(unb64($('answerIn').value));setStatus('Соединяемся…')}catch(e){alert('Не удалось прочитать ответ: '+e)}}
+function showChat(){$('setup').classList.add('hidden');$('chat').classList.remove('hidden');$('text').focus()}
+function addMsg(t,w){const x=document.createElement('div');x.className='msg '+(w==='me'?'me':'them');const b=document.createElement('div');b.textContent=t;const tm=document.createElement('div');tm.className='time';tm.textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});x.append(b,tm);$('messages').appendChild(x);$('messages').scrollTop=$('messages').scrollHeight}
+function sendMsg(){const t=$('text').value.trim();if(!t)return;if(!dc||dc.readyState!=='open'){alert('Сначала подключитесь друг к другу.');return}dc.send(t);addMsg(t,'me');$('text').value='';$('text').focus()}
+$('text').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg()}})
+</script></body></html>
