@@ -172,7 +172,67 @@ function deleteAI(username,name){
   localStorage.setItem("hiddenChats",JSON.stringify(hidden));
   if(currentChat&&currentChat.toLowerCase()===keyName){currentChat="";go("friends")}else renderFriends();
 }
-function renderFriends(){removeComposer();$("view").innerHTML='<section class="screen"><div class="section-title">Всегда рядом</div><div class="user" onclick="openChat(\'Бузя\',true)"><div class="avatar buzy-avatar" style="display:grid;place-items:center">/n</div><div><b>Бузя</b><div class="muted">ассистент</div></div></div>'+(aiProfiles.length?'<div class="section-title" style="margin-top:24px">Мои ИИ</div>': '')+aiProfiles.map(x=>'<div class="user"><div class="avatar" style="display:grid;place-items:center"></div><div style="min-width:0;flex:1" onclick="openChat(\''+x.name.replace(/'/g,"\\\\'")+'\',true)"><b>'+x.name+'</b><div class="muted">'+(x.username?'@'+x.username+' · ':'')+'бот</div></div><button class="btn secondary" style="margin-left:auto" onclick="event.stopPropagation();deleteAI(\''+String(x.username||"").replace(/'/g,"\\\\'")+'\',\''+x.name.replace(/'/g,"\\\\'")+'\')">Удалить</button></div>').join('')+'<div class="section-title" style="margin-top:24px">Люди</div><button class="btn secondary" style="width:100%" onclick="go(\'search\')"> Найти друга по @username</button></section>'}
+function renderFriends(){
+  removeComposer();
+  const section=document.createElement("section");
+  section.className="screen";
+  section.innerHTML='<div class="section-title">Всегда рядом</div>';
+  const buzy=document.createElement("div");
+  buzy.className="user";
+  buzy.onclick=()=>openChat("Бузя",true);
+  buzy.innerHTML='<div class="avatar buzy-avatar" style="display:grid;place-items:center">/n</div><div><b>Бузя</b><div class="muted">ассистент</div></div>';
+  section.appendChild(buzy);
+  if(aiProfiles.length){
+    const title=document.createElement("div");
+    title.className="section-title";
+    title.style.marginTop="24px";
+    title.textContent="Мои ИИ";
+    section.appendChild(title);
+  }
+  aiProfiles.forEach(x=>{
+    const row=document.createElement("div");
+    row.className="user";
+    const av=document.createElement("div");
+    av.className="avatar";
+    av.style.display="grid";
+    av.style.placeItems="center";
+    const src=x.avatar||"";
+    if(src){
+      av.style.backgroundImage="url('"+src.replace(/'/g,"\\'")+"')";
+      av.style.backgroundSize="cover";
+      av.style.backgroundPosition="center";
+    }else av.textContent="ИИ";
+    const info=document.createElement("div");
+    info.style.minWidth="0";
+    info.style.flex="1";
+    const name=document.createElement("b");
+    name.textContent=x.name;
+    const sub=document.createElement("div");
+    sub.className="muted";
+    sub.textContent=(x.username?"@"+x.username+" · ":"")+"бот";
+    info.append(name,sub);
+    info.onclick=()=>openChat(x.name,true);
+    const del=document.createElement("button");
+    del.className="btn secondary";
+    del.style.marginLeft="auto";
+    del.textContent="Удалить";
+    del.onclick=e=>{e.stopPropagation();deleteAI(x.username||"",x.name)};
+    row.append(av,info,del);
+    section.appendChild(row);
+  });
+  const people=document.createElement("div");
+  people.className="section-title";
+  people.style.marginTop="24px";
+  people.textContent="Люди";
+  section.appendChild(people);
+  const find=document.createElement("button");
+  find.className="btn secondary";
+  find.style.width="100%";
+  find.textContent="Найти друга по @username";
+  find.onclick=()=>go("search");
+  section.appendChild(find);
+  $("view").replaceChildren(section);
+}
 function regenerateCode(){profile.identityCode=makeCode();localStorage.setItem("profile",JSON.stringify(profile));const a=JSON.parse(localStorage.getItem("account")||"null");if(a){a.identityCode=profile.identityCode;localStorage.setItem("account",JSON.stringify(a))}const profiles=JSON.parse(localStorage.getItem("userProfiles")||"{}");if(profile.username)profiles[profile.username.toLowerCase()]={avatar};localStorage.setItem("userProfiles",JSON.stringify(profiles));$("identityCode").textContent=profile.identityCode}
 let avatarImage=null,avatarScale=1,avatarX=0,avatarY=0,avatarDragging=false,avatarStartX=0,avatarStartY=0,avatarBaseX=0,avatarBaseY=0;
 function drawAvatarEditor(){const canvas=$("avatarCanvas"),ctx=canvas.getContext("2d"),s=600;ctx.clearRect(0,0,s,s);ctx.fillStyle="#090b10";ctx.fillRect(0,0,s,s);if(!avatarImage)return;const cover=Math.max(s/avatarImage.width,s/avatarImage.height),scale=cover*avatarScale,w=avatarImage.width*scale,h=avatarImage.height*scale;ctx.drawImage(avatarImage,(s-w)/2+avatarX,(s-h)/2+avatarY,w,h)}
