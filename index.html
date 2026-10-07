@@ -5,12 +5,13 @@
 <title>Два дебила</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;height:100%;background:#0d0f14;color:#f4f5f7;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-body{display:flex;justify-content:center}.app{width:min(760px,100%);height:100dvh;background:#151821;display:flex;flex-direction:column;overflow:hidden}
+body{display:flex;justify-content:center}.app{width:min(760px,100%);height:100dvh;background:#151821;display:flex;flex-direction:column;overflow:hidden;position:relative}
 header{height:64px;display:flex;align-items:center;gap:11px;padding:8px 14px;border-bottom:1px solid #292d38;background:#181b24}
 .icon{border:0;background:none;color:#dfe3eb;font-size:22px;padding:6px;cursor:pointer}.avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;background:#303644;display:grid;place-items:center;font-size:20px;flex:none}
-.headtext{min-width:0;flex:1}.name{font-weight:750;font-size:16px}.sub{font-size:12px;color:#8f98a9}.online{color:#61db87}
+.headtext{min-width:0;flex:1}.name{font-weight:750;font-size:16px}.sub{font-size:12px;color:#8f98a9}
 .view{flex:1;min-height:0;overflow:auto}.screen{padding:18px 14px}.search{display:flex;gap:8px;margin-bottom:14px}.search input{flex:1}.card,input{border:1px solid #353b49;background:#10131a;color:#fff;border-radius:13px;padding:11px;font:inherit}.user{display:flex;align-items:center;gap:11px;padding:12px;border-radius:14px;background:#20242e;margin:7px 0;cursor:pointer}.user:hover{background:#282d38}.user .avatar{width:46px;height:46px}.muted{color:#8f98a9;font-size:13px}.bigavatar{width:92px;height:92px;border-radius:50%;object-fit:cover;background:#303644}.profile{text-align:center;padding:25px 10px}.profile h2{margin:12px 0 4px}.btn{border:0;border-radius:12px;background:#5b70ed;color:white;padding:11px 15px;font-weight:700;cursor:pointer}.secondary{background:#303643}.field{margin:13px 0;text-align:left}.field label{display:block;color:#9fa8b8;font-size:12px;margin-bottom:6px}.field input{width:100%}
-#messages{height:100%;overflow:auto;padding:18px 13px 10px;display:flex;flex-direction:column;gap:8px}.msg{max-width:80%;padding:9px 12px;border-radius:17px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.35}.me{align-self:flex-end;background:#5369e9;border-bottom-right-radius:5px}.them{align-self:flex-start;background:#292e39;border-bottom-left-radius:5px}.meta{font-size:10px;opacity:.55;margin-top:3px}.composer{padding:9px 10px calc(9px + env(safe-area-inset-bottom));border-top:1px solid #292d38;background:#181b24;display:flex;gap:8px;align-items:end}#text{flex:1;min-height:44px;max-height:140px;resize:none;border:1px solid #353b49;border-radius:19px;background:#10131a;color:#fff;padding:11px 14px;font:inherit;outline:none}#send{width:46px;height:44px}
+#messages{height:100%;overflow:auto;padding:18px 13px 10px;display:flex;flex-direction:column;gap:8px}.msg{max-width:80%;padding:9px 12px;border-radius:17px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.35;position:relative}.me{align-self:flex-end;background:#5369e9;border-bottom-right-radius:5px}.them{align-self:flex-start;background:#292e39;border-bottom-left-radius:5px}.msg img{display:block;max-width:100%;max-height:320px;border-radius:12px;object-fit:contain}.meta{font-size:10px;opacity:.55;margin-top:3px}.msg-actions{position:absolute;right:5px;top:-34px;display:none;background:#20242e;border:1px solid #3b4150;border-radius:10px;padding:4px;box-shadow:0 5px 18px #0008;z-index:2}.msg.selected .msg-actions{display:block}.delete-btn{border:0;background:none;color:#ff7070;padding:7px 9px;cursor:pointer;font:inherit;font-size:12px;white-space:nowrap}
+.composer{padding:9px 10px calc(9px + env(safe-area-inset-bottom));border-top:1px solid #292d38;background:#181b24;display:flex;gap:8px;align-items:end}.attach{width:44px;height:44px;border:0;border-radius:50%;background:#303643;color:#fff;font-size:20px;cursor:pointer}#text{flex:1;min-height:44px;max-height:140px;resize:none;border:1px solid #353b49;border-radius:19px;background:#10131a;color:#fff;padding:11px 14px;font:inherit;outline:none}#send{width:46px;height:44px}
 .bottom{height:58px;border-top:1px solid #292d38;background:#181b24;display:flex;justify-content:space-around;align-items:center}.nav{background:none;color:#8f98a9;border:0;font-size:12px;cursor:pointer}.nav b{display:block;font-size:20px}.nav.active{color:#fff}
 .drawer{position:absolute;inset:0;display:none;background:#0008;z-index:5}.drawer.open{display:block}.panel{width:min(350px,90%);height:100%;background:#171a22;padding:18px;box-shadow:8px 0 30px #0008}.panel h2{margin:0 0 18px}.row{display:flex;gap:8px;flex-wrap:wrap}.pick{cursor:pointer;display:flex;align-items:center;gap:10px}.empty{text-align:center;color:#858e9e;padding:55px 20px}.empty b{display:block;color:#cfd4de;font-size:20px;margin-bottom:6px}
 </style>
@@ -34,7 +35,7 @@ header{height:64px;display:flex;align-items:center;gap:11px;padding:8px 14px;bor
 <script>
 const $=id=>document.getElementById(id);
 const defaultAvatar="data:image/svg+xml,"+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><rect width='100%' height='100%' rx='50' fill='#303644'/><text x='50%' y='59%' text-anchor='middle' font-size='46'>🫵</text></svg>");
-let profile=JSON.parse(localStorage.getItem("profile")||"{}"); let avatar=profile.avatar||"";
+let profile=JSON.parse(localStorage.getItem("profile")||"{}"); let avatar=profile.avatar||""; let currentChat="";
 function saveLocal(){profile={username:($("username").value||"").trim().replace(/^@/,""),displayName:($("displayName").value||"").trim(),bio:($("bio").value||"").trim(),avatar};localStorage.setItem("profile",JSON.stringify(profile));renderHeader()}
 function renderHeader(){$("headName").textContent=profile.displayName||"Мой профиль";$("headSub").textContent=profile.username?"@"+profile.username:"Настрой профиль";$("headAvatar").src=avatar||defaultAvatar;$("pickAvatar").src=avatar||defaultAvatar}
 function openProfile(){$("username").value=profile.username||"";$("displayName").value=profile.displayName||"";$("bio").value=profile.bio||"";$("drawer").classList.add("open")}
@@ -46,7 +47,25 @@ function renderChats(){$("view").innerHTML='<section class="screen"><div class="
 function renderSearch(){$("view").innerHTML='<section class="screen"><div class="search"><input id="q" placeholder="Найти по юзу…"><button class="btn" onclick="searchUsers()">Найти</button></div><div id="results" class="muted">Введи @username.</div></section>';setTimeout(()=>$("q").focus(),0)}
 function searchUsers(){const q=($("q").value||"").trim().replace(/^@/,"").toLowerCase();const r=$("results");if(!q){r.textContent="Введи @username.";return}r.innerHTML='<div class="user" onclick="openFound(\''+q+'\')"><img class="avatar" src="'+defaultAvatar+'"><div><b>@'+q+'</b><div class="muted">Пользователь</div></div></div>'}
 function openFound(u){$("view").innerHTML='<section class="profile"><img class="bigavatar" src="'+defaultAvatar+'"><h2>@'+u+'</h2><div class="muted">Профиль пользователя</div><br><button class="btn" onclick="openChat(\''+u+'\')">Написать</button></section>'}
-function openChat(u){$("view").innerHTML='<section id="messages"><div class="empty"><b>@'+u+'</b>Здесь будет ваш диалог.</div></section>';document.querySelector(".bottom").style.display="none";$("headName").textContent="@"+u;$("headSub").textContent="диалог";const c=document.createElement("div");c.className="composer";c.innerHTML='<textarea id="text" placeholder="Написать сообщение…" rows="1"></textarea><button id="send">➤</button>';document.querySelector(".app").appendChild(c);$("send").onclick=()=>{const t=$("text").value.trim();if(t){const m=document.querySelector(".empty");if(m)m.remove();const x=document.createElement("div");x.className="msg me";x.textContent=t;document.querySelector("#messages").appendChild(x);$("text").value=""}}}
+function openChat(u){
+currentChat=u;
+$("view").innerHTML='<section id="messages"><div id="chatEmpty" class="empty"><b>@'+u+'</b>Здесь будет ваш диалог.</div></section>';
+document.querySelector(".bottom").style.display="none";
+const c=document.createElement("div");c.className="composer";c.innerHTML='<button class="attach" title="Фото">＋</button><input id="photoInput" type="file" accept="image/*" hidden><textarea id="text" placeholder="Написать сообщение…" rows="1"></textarea><button id="send">➤</button>';
+document.querySelector(".app").appendChild(c);
+const attach=c.querySelector(".attach"), photo=c.querySelector("#photoInput");
+attach.onclick=()=>photo.click();
+photo.onchange=e=>{const f=e.target.files[0];if(!f)return;if(!f.type.startsWith("image/"))return;const r=new FileReader();r.onload=()=>addPhotoMessage(r.result);r.readAsDataURL(f);photo.value=""};
+$("send").onclick=()=>{const t=$("text").value.trim();if(t){addTextMessage(t);$("text").value=""}};
+$("text").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("send").click()}});
+}
+function addTextMessage(t){const empty=$("chatEmpty");if(empty)empty.remove();const x=document.createElement("div");x.className="msg me";x.innerHTML='<div class="msg-actions"><button class="delete-btn">Удалить</button></div><div class="body"></div>';x.querySelector(".body").textContent=t;x.querySelector(".delete-btn").onclick=()=>deleteMessage(x);$("messages").appendChild(x);scrollMessages()}
+function addPhotoMessage(src){const empty=$("chatEmpty");if(empty)empty.remove();const x=document.createElement("div");x.className="msg me";x.innerHTML='<div class="msg-actions"><button class="delete-btn">Удалить фото</button></div><img alt="Фото сообщения">';x.querySelector("img").src=src;x.querySelector(".delete-btn").onclick=()=>deleteMessage(x);$("messages").appendChild(x);scrollMessages()}
+function deleteMessage(el){el.remove()}
+function scrollMessages(){const m=$("messages");m.scrollTop=m.scrollHeight}
+document.addEventListener("click",e=>{document.querySelectorAll(".msg.selected").forEach(m=>{if(!m.contains(e.target))m.classList.remove("selected")})});
+document.addEventListener("contextmenu",e=>{const m=e.target.closest&&e.target.closest(".msg");if(!m)return;e.preventDefault();m.classList.toggle("selected")});
+document.addEventListener("click",e=>{const m=e.target.closest&&e.target.closest(".msg");if(m&&!e.target.closest(".delete-btn"))m.classList.toggle("selected")});
 renderHeader();renderChats();
 </script>
 </body></html>
