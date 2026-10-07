@@ -109,7 +109,7 @@ function removeComposer(){const old=document.querySelector(".composer");if(old)o
 function chatKey(u){return "chat:"+u.toLowerCase()}
 function loadMessages(u){return JSON.parse(localStorage.getItem(chatKey(u))||"[]")}
 function saveMessages(u,items){localStorage.setItem(chatKey(u),JSON.stringify(items))}
-function exitChat(){closeChatMenu();renderChats()}\nfunction exitChat(){closeChatMenu();renderChats()}
+function exitChat(){closeChatMenu();renderChats()}
 function deleteChatForMe(){localStorage.removeItem(chatKey(currentChat));closeChatMenu();renderChats()}
 function deleteChatForEveryone(){localStorage.removeItem(chatKey(currentChat));localStorage.setItem("deleteForEveryone:"+currentChat.toLowerCase(),Date.now().toString());closeChatMenu();renderChats()}
 function toggleChatMenu(){$("chatMenu").classList.toggle("open")}
