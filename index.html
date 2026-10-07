@@ -145,10 +145,11 @@ async function createAI(){
     setTimeout(()=>{if(!done){finish("")}},30000);
     file.click();
   });
-  const bot={name,username,avatar:avatar||"",isBot:true};
+  const personality=prompt("Характер бота\\nНапример: добрый, саркастичный, спокойный, любит шутить.")||"";
+  const bot={name,username,avatar:avatar||"",personality:personality.trim().slice(0,1000),isBot:true};
   aiProfiles.push(bot);
   localStorage.setItem("aiProfiles",JSON.stringify(aiProfiles));
-  profiles[username]={avatar:bot.avatar,name:bot.name,isBot:true};
+  profiles[username]={avatar:bot.avatar,name:bot.name,personality:bot.personality,isBot:true};
   localStorage.setItem("userProfiles",JSON.stringify(profiles));
   openChat(name,true);
 }
