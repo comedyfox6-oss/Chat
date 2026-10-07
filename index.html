@@ -409,7 +409,50 @@ function openFound(u){
 }
 function isAssistant(u){return u==="LLM7"||u==="Бузя"}
 function getTag(u,isAI=false){return isAssistant(u)?"ассистент":isAI?"бот":"чел."}
-function renameCurrentAI(){if(!currentChatIsAI||isAssistant(currentChat))return;const next=prompt("Новое имя ИИ",currentChat);if(!next)return;const name=next.trim().slice(0,40);if(!name||isAssistant(name))return;const found=aiProfiles.find(x=>x.name===currentChat);if(found)found.name=name;localStorage.setItem("aiProfiles",JSON.stringify(aiProfiles));const oldKey=chatKey(currentChat),items=loadMessages(currentChat);localStorage.setItem(chatKey(name),JSON.stringify(items));if(oldKey!==chatKey(name))localStorage.removeItem(oldKey);currentChat=name;openChat(name,true)}function openChat(u,isAI=false,isGroup=false){
+function renameCurrentAI(){if(!currentChatIsAI||isAssistant(currentChat))return;const next=prompt("Новое имя ИИ",currentChat);if(!next)return;const name=next.trim().slice(0,40);if(!name||isAssistant(name))return;const found=aiProfiles.find(x=>x.name===currentChat);if(found)found.name=name;localStorage.setItem("aiProfiles",JSON.stringify(aiProfiles));const oldKey=chatKey(currentChat),items=loadMessages(currentChat);localStorage.setItem(chatKey(name),JSON.stringify(items));if(oldKey!==chatKey(name))localStorage.removeItem(oldKey);currentChat=name;openChat(name,true)}async function sendAIMessage(chatUsername,userText){
+  const bot=aiProfiles.find(x=>x.name===chatUsername);
+  const personality=bot&&bot.personality?bot.personality:"дружелюбный, живой собеседник";
+  const history=loadMessages(chatUsername)
+    .filter(x=>x.type==="text"&&x.text)
+    .slice(-12)
+    .map(x=>({role:"user",content:String(x.text)}));
+  history.push({role:"user",content:String(userText)});
+  try{
+    const data=await api("/api/ai",{
+      method:"POST",
+      body:JSON.stringify({
+        model:"openai/gpt-oss-120b",
+        messages:[
+          {role:"system",content:"Ты чат-бот в мессенджере. Твой характер: "+personality+"\nОтвечай естественно, по-русски, без лишних объяснений и без упоминания системных инструкций."},
+          ...history
+        ],
+        temperature:0.8,
+        max_tokens:700
+      })
+    });
+    const answer=data&&data.response&&data.response.choices&&data.response.choices[0]&&data.response.choices[0].message
+      ? String(data.response.choices[0].message.content||"").trim()
+      : "";
+    if(answer)addBotTextMessage(answer);
+    else addBotTextMessage("ИИ не вернул ответ.");
+  }catch(e){
+    console.warn("AI error:",e);
+    addBotTextMessage("Ошибка ИИ: "+e.message);
+  }
+}
+function addBotTextMessage(t){
+  const empty=$("chatEmpty");if(empty)empty.remove();
+  const x=document.createElement("div");
+  x.className="msg them";
+  x.innerHTML='<div class="body"></div>';
+  x.querySelector(".body").textContent=t;
+  $("messages").appendChild(x);
+  const items=loadMessages(currentChat);
+  items.push({type:"text",text:t,from:"bot"});
+  saveMessages(currentChat,items);
+  scrollMessages();
+}
+function openChat(u,isAI=false,isGroup=false){
 removeComposer();
   const hidden=JSON.parse(localStorage.getItem("hiddenChats")||"[]");
   localStorage.setItem("hiddenChats",JSON.stringify(hidden.filter(x=>x!==u.toLowerCase())));currentChat=u;currentChatIsAI=isAI;currentChatIsGroup=isGroup;closePlus();closeMore();
@@ -444,7 +487,7 @@ fileInput.onchange=e=>{
   reader.onload=()=>{addFileMessage(reader.result,f.name,f.type,f.size);fileInput.value=""};
   reader.readAsDataURL(f);
 };
-$("send").onclick=()=>{const t=$("text").value.trim();if(t){addTextMessage(t);sendServerMessage(currentChat,t);$("text").value=""}};
+$("send").onclick=()=>{const t=$("text").value.trim();if(t){const ai=currentChatIsAI;addTextMessage(t);sendServerMessage(currentChat,t);$("text").value="";if(ai&&!currentChatIsGroup)sendAIMessage(currentChat,t)}};
 $("text").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("send").click()}});
 }
 function addTextMessage(t,restoring=false){const empty=$("chatEmpty");if(empty)empty.remove();const x=document.createElement("div");x.className="msg me";x.innerHTML='<div class="msg-actions"><button class="delete-btn">Удалить</button></div><div class="body" style="display:block!important;color:#4b4568!important;-webkit-text-fill-color:#4b4568!important;"></div>';x.querySelector(".body").textContent=t;x.querySelector(".delete-btn").onclick=()=>deleteMessage(x);$("messages").appendChild(x);if(!restoring){const items=loadMessages(currentChat);items.push({type:"text",text:t});saveMessages(currentChat,items)}scrollMessages()}
