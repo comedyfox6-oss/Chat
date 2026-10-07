@@ -104,7 +104,57 @@ $("avatarCanvas").addEventListener("pointercancel",()=>avatarDragging=false)
 function saveAvatarEdit(){if(!avatarImage)return;const out=document.createElement("canvas");out.width=600;out.height=600;out.getContext("2d").drawImage($("avatarCanvas"),0,0);avatar=out.toDataURL("image/jpeg",.9);renderHeader();closeAvatarEditor()}
 $("file").onchange=e=>{const f=e.target.files[0];if(!f||!f.type.startsWith("image/"))return;const r=new FileReader();r.onload=()=>openAvatarEditor(r.result);r.readAsDataURL(f);e.target.value=""}
 function go(page){removeComposer();document.querySelector(".bottom").style.display="flex";if(page==="search")renderSearch();else if(page==="friends")renderFriends();else renderChats();document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));if(page==="friends")$("nFriends").classList.add("active");else if(page==="chats")$("nChats").classList.add("active")}
-function renderChats(){removeComposer();const chats=[];const seen=new Set();const add=(name,isAI)=>{const key=name.toLowerCase();if(seen.has(key))return;const items=loadMessages(name);if(items.length||name==="Харлоу"||aiProfiles.some(x=>x.name===name)){seen.add(key);chats.push({name,isAI,last:items.length?items[items.length-1]:null})}};add("Харлоу",true);aiProfiles.forEach(x=>add(x.name,true));Object.keys(localStorage).filter(k=>k.indexOf("chat:")===0).forEach(k=>{const name=k.slice(5);if(name)add(name,isAssistant(name))});if(!chats.length){$("view").innerHTML='<section class="screen"><div class="empty"><b>Пока пусто</b>Найди человека по @username или создай своего ИИ.</div></section>';return}let html='<section class="screen"><div class="section-title">Чаты</div>';for(const x of chats){const preview=x.last?(x.last.type==="photo"?"Фото":String(x.last.text||"")):"Начать диалог";const safe=x.name.replace(/'/g,"\\'");html+='<div class="user" onclick="openChat(\\''+safe+'\\','+x.isAI+')"><div class="avatar" style="display:grid;place-items:center">'+(x.name==="Харлоу"?"":"ИИ")+'</div><div style="min-width:0"><b>@'+x.name+'</b><div class="muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+preview.replace(/</g,"&lt;")+'</div></div></div>'}html+='</section>';$("view").innerHTML=html}
+function renderChats(){
+  removeComposer();
+  const chats=[];
+  const seen=new Set();
+  const add=(name,isAI)=>{
+    const key=name.toLowerCase();
+    if(seen.has(key))return;
+    const items=loadMessages(name);
+    if(items.length||name==="Харлоу"||aiProfiles.some(x=>x.name===name)){
+      seen.add(key);
+      chats.push({name,isAI,last:items.length?items[items.length-1]:null});
+    }
+  };
+  add("Харлоу",true);
+  aiProfiles.forEach(x=>add(x.name,true));
+  Object.keys(localStorage).filter(k=>k.indexOf("chat:")===0).forEach(k=>{
+    const name=k.slice(5);
+    if(name)add(name,isAssistant(name));
+  });
+  if(!chats.length){
+    $("view").innerHTML='<section class="screen"><div class="empty"><b>Пока пусто</b>Найди человека по @username или создай своего ИИ.</div></section>';
+    return;
+  }
+  const section=document.createElement("section");
+  section.className="screen";
+  section.innerHTML='<div class="section-title">Чаты</div>';
+  for(const x of chats){
+    const row=document.createElement("div");
+    row.className="user";
+    row.onclick=()=>openChat(x.name,x.isAI);
+    const av=document.createElement("div");
+    av.className="avatar";
+    av.style.display="grid";
+    av.style.placeItems="center";
+    if(x.name!=="Харлоу")av.textContent="ИИ";
+    const wrap=document.createElement("div");
+    wrap.style.minWidth="0";
+    const title=document.createElement("b");
+    title.textContent="@"+x.name;
+    const preview=document.createElement("div");
+    preview.className="muted";
+    preview.style.whiteSpace="nowrap";
+    preview.style.overflow="hidden";
+    preview.style.textOverflow="ellipsis";
+    preview.textContent=x.last?(x.last.type==="photo"?"Фото":String(x.last.text||"")):"Начать диалог";
+    wrap.append(title,preview);
+    row.append(av,wrap);
+    section.appendChild(row);
+  }
+  $("view").replaceChildren(section);
+}
 function removeComposer(){const old=document.querySelector(".composer");if(old)old.remove()}
 function chatKey(u){return "chat:"+u.toLowerCase()}
 function loadMessages(u){return JSON.parse(localStorage.getItem(chatKey(u))||"[]")}
