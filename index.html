@@ -296,15 +296,28 @@ function searchUsers(){
   const r=$("results");
   if(!q){r.textContent="Введи @username.";return}
   const profiles=JSON.parse(localStorage.getItem("userProfiles")||"{}");
-  const p=q==="buzya"?{name:"Бузя",isBot:true,isAssistant:true,avatar:""}:(profiles[q]||null);
+  let p=profiles[q]||null;
+  if(q==="buzya") p={name:"Бузя",username:"buzya",isBot:true,isAssistant:true,avatar:""};
   if(!p){r.textContent="Пользователь не найден.";return}
-  const row=document.createElement("div");row.className="user";row.onclick=()=>openFound(q);
-  const av=makeAvatar(q,!!p.isBot,false);
-  if(p.avatar){av.style.backgroundImage="url('"+p.avatar.replace(/'/g,"\\'")+"')";av.style.backgroundSize="cover";av.style.backgroundPosition="center";av.textContent=""}
+  const row=document.createElement("div");
+  row.className="user";
+  row.onclick=()=>openFound(q);
+  const av=makeAvatar(p.name||q,!!p.isBot,false);
+  if(p.avatar){
+    av.style.backgroundImage="url('"+p.avatar.replace(/'/g,"\\'")+"')";
+    av.style.backgroundSize="cover";
+    av.style.backgroundPosition="center";
+    av.textContent="";
+  }
   const wrap=document.createElement("div");
-  const name=document.createElement("b");name.textContent="@"+q;
-  const sub=document.createElement("div");sub.className="muted";sub.textContent=p.isBot?"бот":"чел.";
-  wrap.append(name,sub);row.append(av,wrap);r.replaceChildren(row)
+  const name=document.createElement("b");
+  name.textContent="@"+q;
+  const sub=document.createElement("div");
+  sub.className="muted";
+  sub.textContent=p.isAssistant?"ассистент":(p.isBot?"бот":"чел.");
+  wrap.append(name,sub);
+  row.append(av,wrap);
+  r.replaceChildren(row);
 }
 function openFound(u){
   const profiles=JSON.parse(localStorage.getItem("userProfiles")||"{}");
