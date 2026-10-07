@@ -23,43 +23,68 @@ async function handleAI(request, env) {
     return json({ error: "GROQ_API_KEY_not_configured" }, 500);
   }
 
-  const data = await readJson(request);
+  // Fair/LLM7 sends an OpenAI-compatible request.
+  // Clone the request before reading the body so the original
+  // Request stream never gets disturbed/locked.
+  let data;
+  try {
+    const body = await request.clone().json();
+    data = body && typeof body === "object" ? body : {};
+  } catch {
+    return json({ error: "invalid_json" }, 400);
+  }
+
   const messages = Array.isArray(data.messages) ? data.messages : [];
 
   if (!messages.length) {
     return json({ error: "messages_required" }, 400);
   }
 
-  const model = String(data.model || "openai/gpt-oss-120b");
+  const payload = {
+    model: String(data.model || "openai/gpt-oss-120b"),
+    messages,
+    temperature:
+      typeof data.temperature === "number"
+        ? data.temperature
+        : 0.8,
+    max_completion_tokens:
+      typeof data.max_completion_tokens === "number"
+        ? data.max_completion_tokens
+        : typeof data.max_tokens === "number"
+          ? data.max_tokens
+          : 700
+  };
 
-  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
+  if (Array.isArray(data.tools)) payload.tools = data.tools;
+  if (data.tool_choice !== undefined) payload.tool_choice = data.tool_choice;
+  if (data.response_format !== undefined) payload.response_format = data.response_format;
+  if (data.top_p !== undefined) payload.top_p = data.top_p;
+  if (data.stop !== undefined) payload.stop = data.stop;
+  if (data.seed !== undefined) payload.seed = data.seed;
+
+  const response = await fetch(
+    "https://api.groq.com/openai/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${env.GROQ_API_KEY}`
+      },
+      body: JSON.stringify(payload)
+    }
+  );
+
+  const text = await response.text();
+
+  // Return Groq's OpenAI-compatible response unchanged.
+  return new Response(text, {
+    status: response.status,
     headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${env.GROQ_API_KEY}`
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: typeof data.temperature === "number" ? data.temperature : 0.8,
-      max_completion_tokens: typeof data.max_tokens === "number" ? data.max_tokens : 700
-    })
-  });
-
-  const result = await response.json();
-
-  if (!response.ok) {
-    return json({
-      error: "groq_error",
-      status: response.status,
-      details: result
-    }, response.status);
-  }
-
-  return json({
-    ok: true,
-    model,
-    response: result
+      "Content-Type":
+        response.headers.get("Content-Type") ||
+        "application/json; charset=utf-8",
+      ...CORS
+    }
   });
 }
 
