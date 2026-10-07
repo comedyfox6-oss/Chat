@@ -342,7 +342,22 @@ const c=document.createElement("div");c.className="composer";c.innerHTML='<butto
 document.querySelector(".app").appendChild(c);
 const attach=c.querySelector(".attach"), photo=c.querySelector("#photoInput");
 attach.onclick=()=>photo.click();
-photo.onchange=e=>{const f=e.target.files[0];if(!f)return;if(!f.type.startsWith("image/"))return;const r=new FileReader();r.onload=()=>addPhotoMessage(r.result);r.readAsDataURL(f);photo.value=""};
+photo.onchange=e=>{
+  const f=e.target.files[0];
+  if(!f)return;
+  const isImage=f.type.startsWith("image/");
+  const isAudio=f.type.startsWith("audio/");
+  const isDocument=["application/pdf","text/plain","application/rtf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","application/vnd.ms-powerpoint","application/vnd.openxmlformats-officedocument.presentationml.presentation"].includes(f.type)||/\\.(pdf|doc|docx|txt|rtf|xls|xlsx|ppt|pptx)$/i.test(f.name);
+  if(!isImage&&!isAudio&&!isDocument){photo.value="";return}
+  const reader=new FileReader();
+  reader.onload=()=>{
+    if(isImage)addPhotoMessage(reader.result);
+    else if(isAudio)addAudioMessage(reader.result,f.name,f.type);
+    else addFileMessage(reader.result,f.name,f.type,f.size);
+    photo.value="";
+  };
+  reader.readAsDataURL(f);
+};
 $("send").onclick=()=>{const t=$("text").value.trim();if(t){addTextMessage(t);$("text").value=""}};
 $("text").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("send").click()}});
 }
