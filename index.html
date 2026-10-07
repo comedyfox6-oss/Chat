@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Два дебила</title>
+<title>Чат</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;height:100%;background:#0d0f14;color:#f4f5f7;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 body{display:flex;justify-content:center}.app{width:min(760px,100%);height:100dvh;background:#151821;display:flex;flex-direction:column;overflow:hidden;position:relative}
@@ -17,13 +17,13 @@ header{height:64px;display:flex;align-items:center;gap:11px;padding:8px 14px;bor
 </style>
 </head>
 <body>
-<div class="app">
+<div id="auth" style="position:absolute;inset:0;background:#10131a;z-index:20;display:flex;align-items:center;justify-content:center;padding:20px"><div style="width:min(420px,100%);background:#181b24;border:1px solid #292d38;border-radius:20px;padding:22px"><h1>Вход</h1><p class="muted">После входа устройство запоминается.</p><div id="loginForm"><div class="field"><label>Юзер или почта</label><input id="loginId" placeholder="@username или почта"></div><div class="field"><label>Пароль</label><input id="loginPass" type="password" placeholder="Пароль"></div><button class="btn" style="width:100%" onclick="login()">Войти</button><div class="field"><label>Код идентификации</label><input id="loginCode" placeholder="XXXX-XXXX-XXXX"></div><button class="btn secondary" style="width:100%" onclick="loginByCode()">Войти по коду</button><button class="btn secondary" style="width:100%;margin-top:8px" onclick="showRegister()">Создать аккаунт</button></div><div id="registerForm" style="display:none"><div class="field"><label>Юзер</label><input id="regUser" placeholder="@username"></div><div class="field"><label>Имя</label><input id="regName" placeholder="Как тебя называть"></div><div class="field"><label>Почта</label><input id="regEmail" type="email" placeholder="Личная почта"></div><div class="field"><label>Пароль</label><input id="regPass" type="password" placeholder="Пароль"></div><button class="btn" style="width:100%" onclick="registerAccount()">Создать аккаунт</button><button class="btn secondary" style="width:100%;margin-top:8px" onclick="showLogin()">Назад</button></div><div id="authMsg" class="muted"></div></div></div><div class="app">
 <header><button class="icon" onclick="go('search')">⌕</button><img id="headAvatar" class="avatar"><div class="headtext"><div class="name" id="headName">Мой профиль</div><div class="sub" id="headSub">Настрой профиль</div></div><button class="icon" onclick="openProfile()">⋮</button></header>
 <main id="view" class="view"></main>
-<nav class="bottom"><button id="nChats" class="nav active" onclick="go('chats')"><b>💬</b>Чаты</button><button id="nSearch" class="nav" onclick="go('search')"><b>⌕</b>Юзеры</button><button id="nMe" class="nav" onclick="openProfile()"><b>●</b>Профиль</button></nav>
+<nav class="bottom"><button class="nav" onclick="togglePlus()"><b>＋</b>Добавить</button><button id="nChats" class="nav active" onclick="go('chats')"><b>💬</b>Чаты</button><button id="nSearch" class="nav" onclick="go('search')"><b>⌕</b>Юзеры</button><button id="nMe" class="nav" onclick="openProfile()"><b>●</b>Профиль</button></nav>
 </div>
 
-<div id="drawer" class="drawer" onclick="if(event.target===this)closeProfile()"><div class="panel">
+<div id="plusMenu" style="position:absolute;right:12px;bottom:70px;display:none;z-index:8;background:#20242e;border:1px solid #353b49;border-radius:16px;padding:7px;width:190px"><button class="delete-btn" style="display:block;width:100%;text-align:left;color:#fff" onclick="createAI()">🤖 Создать ИИ</button><button class="delete-btn" style="display:block;width:100%;text-align:left;color:#fff" onclick="go(&quot;search&quot;);closePlus()">👤 Найти друга</button></div><div id="drawer" class="drawer" onclick="if(event.target===this)closeProfile()"><div class="panel">
 <h2>Профиль</h2>
 <div class="field"><label>Юзер</label><input id="username" maxlength="32" placeholder="@username"></div>
 <div class="field"><label>Имя</label><input id="displayName" maxlength="40" placeholder="Как тебя называть"></div>
@@ -40,14 +40,21 @@ function saveLocal(){profile={username:($("username").value||"").trim().replace(
 function renderHeader(){$("headName").textContent=profile.displayName||"Мой профиль";$("headSub").textContent=profile.username?"@"+profile.username:"Настрой профиль";$("headAvatar").src=avatar||defaultAvatar;$("pickAvatar").src=avatar||defaultAvatar}
 function openProfile(){$("username").value=profile.username||"";$("displayName").value=profile.displayName||"";$("bio").value=profile.bio||"";$("drawer").classList.add("open")}
 function closeProfile(){$("drawer").classList.remove("open")}
-function saveProfile(){saveLocal();closeProfile();go("chats")}
+function saveProfile(){saveLocal();closeProfile();go("chats")}function showRegister(){$("loginForm").style.display="none";$("registerForm").style.display="block"}
+function showLogin(){$("loginForm").style.display="block";$("registerForm").style.display="none"}
+function makeCode(){return Array.from(crypto.getRandomValues(new Uint8Array(12))).map(x=>x.toString(16).padStart(2,"0")).join("").toUpperCase().match(/.{1,4}/g).join("-")}
+function registerAccount(){const u=$("regUser").value.trim().replace(/^@/,"").toLowerCase(),n=$("regName").value.trim(),e=$("regEmail").value.trim().toLowerCase(),p=$("regPass").value;if(!u||!e||!p){$("authMsg").textContent="Заполни юзер, почту и пароль.";return}const code=makeCode();profile={username:u,displayName:n,email:e,avatar:"",bio:"",identityCode:code};localStorage.setItem("profile",JSON.stringify(profile));localStorage.setItem("account",JSON.stringify({username:u,email:e,password:p,identityCode:code}));$("auth").style.display="none";renderHeader();renderChats()}
+function login(){const id=$("loginId").value.trim().replace(/^@/,"").toLowerCase(),p=$("loginPass").value,a=JSON.parse(localStorage.getItem("account")||"null");if(!a||p!==a.password||(id!==a.username&&id!==a.email)){$("authMsg").textContent="Неверные данные.";return}$("auth").style.display="none";renderHeader();renderChats()}
+function loginByCode(){const code=$("loginCode").value.trim().toUpperCase(),a=JSON.parse(localStorage.getItem("account")||"null");if(!a||code!==a.identityCode){$("authMsg").textContent="Неверный код.";return}$("auth").style.display="none";renderHeader();renderChats()}
+function togglePlus(){$("plusMenu").style.display=$("plusMenu").style.display==="block"?"none":"block"}function closePlus(){$("plusMenu").style.display="none"}function createAI(){closePlus();openChat("LLM7",true)}
+function regenerateCode(){profile.identityCode=makeCode();localStorage.setItem("profile",JSON.stringify(profile));const a=JSON.parse(localStorage.getItem("account")||"null");if(a){a.identityCode=profile.identityCode;localStorage.setItem("account",JSON.stringify(a))}$("identityCode").textContent=profile.identityCode}
 $("file").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{avatar=r.result;renderHeader()};r.readAsDataURL(f)}
 function go(page){if(page==="search")renderSearch();else renderChats();document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));$(page==="search"?"nSearch":"nChats").classList.add("active")}
 function renderChats(){$("view").innerHTML='<section class="screen"><div class="empty"><b>Пока пусто 🫵</b>Найди друга по юзу — и открой диалог.</div></section>'}
 function renderSearch(){$("view").innerHTML='<section class="screen"><div class="search"><input id="q" placeholder="Найти по юзу…"><button class="btn" onclick="searchUsers()">Найти</button></div><div id="results" class="muted">Введи @username.</div></section>';setTimeout(()=>$("q").focus(),0)}
 function searchUsers(){const q=($("q").value||"").trim().replace(/^@/,"").toLowerCase();const r=$("results");if(!q){r.textContent="Введи @username.";return}r.innerHTML='<div class="user" onclick="openFound(\''+q+'\')"><img class="avatar" src="'+defaultAvatar+'"><div><b>@'+q+'</b><div class="muted">Пользователь</div></div></div>'}
 function openFound(u){$("view").innerHTML='<section class="profile"><img class="bigavatar" src="'+defaultAvatar+'"><h2>@'+u+'</h2><div class="muted">Профиль пользователя</div><br><button class="btn" onclick="openChat(\''+u+'\')">Написать</button></section>'}
-function openChat(u){
+function openChat(u,isAI=false){
 currentChat=u;
 $("view").innerHTML='<section id="messages"><div id="chatEmpty" class="empty"><b>@'+u+'</b>Здесь будет ваш диалог.</div></section>';
 document.querySelector(".bottom").style.display="none";
