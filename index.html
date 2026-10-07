@@ -116,14 +116,75 @@ let profile=JSON.parse(localStorage.getItem("profile")||"{}"); let avatar=profil
 function makeAvatar(name,isAI=false,isGroup=false){const el=document.createElement("div");el.className="avatar";el.style.display="grid";el.style.placeItems="center";const src=getStoredAvatar(name);if(src){el.style.backgroundImage="url('"+src.replace(/'/g,"\\'")+"')";el.style.backgroundSize="cover";el.style.backgroundPosition="center";el.textContent="";return el}if(isGroup){el.textContent="Г"}else if(name==="Бузя"){el.textContent="/n";el.classList.add("buzy-avatar");el.style.setProperty("color","#4fe7ff","important");el.style.setProperty("-webkit-text-fill-color","#4fe7ff","important");el.style.setProperty("text-shadow","0 0 5px #24dfff,0 0 12px #079cff,0 0 20px #006eff","important")}else if(isAI){el.textContent="ИИ"}else{el.textContent="👤"}return el}
  let currentChatIsAI=false; let currentChatIsGroup=false; let aiProfiles=JSON.parse(localStorage.getItem("aiProfiles")||"[]"); let groups=JSON.parse(localStorage.getItem("groups")||"[]");
 const BUZYA_USERNAME="buzya";
+const API_BASE="https://chatmes.comedyfox6.workers.dev";
+
+async function api(path, options={}) {
+  const res=await fetch(API_BASE+path,{
+    ...options,
+    headers:{
+      "Content-Type":"application/json",
+      ...(options.headers||{})
+    }
+  });
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error||("HTTP "+res.status));
+  return data;
+}
+
+async function syncCurrentUser(){
+  const u=String(profile.username||"").replace(/^@/,"").trim().toLowerCase();
+  const name=String(profile.displayName||u||"Пользователь").trim();
+  if(!u)return;
+  try{
+    await api("/api/users",{
+      method:"POST",
+      body:JSON.stringify({
+        username:u,
+        name:name||u,
+        avatar:profile.avatar||"",
+        isBot:false,
+        isAssistant:false,
+        personality:""
+      })
+    });
+  }catch(e){
+    if(e.message!=="username_taken") console.warn("Не удалось синхронизировать профиль:",e);
+  }
+}
+
+async function sendServerMessage(chatUsername,text){
+  const sender=String(profile.username||"").replace(/^@/,"").trim().toLowerCase();
+  const chat=String(chatUsername||"").replace(/^@/,"").trim().toLowerCase();
+  if(!sender||!chat)return;
+  try{
+    await api("/api/chats/"+encodeURIComponent(chat),{
+      method:"POST",
+      body:JSON.stringify({sender,text})
+    });
+  }catch(e){
+    console.warn("Не удалось сохранить сообщение на сервере:",e);
+  }
+}
+
+async function loadServerMessages(chatUsername){
+  const chat=String(chatUsername||"").replace(/^@/,"").trim().toLowerCase();
+  if(!chat)return [];
+  try{
+    const data=await api("/api/chats/"+encodeURIComponent(chat));
+    return Array.isArray(data.messages)?data.messages:[];
+  }catch(e){
+    console.warn("Не удалось загрузить сообщения с сервера:",e);
+    return [];
+  }
+}
 function saveLocal(){profile={...profile,username:($("username").value||"").trim().replace(/^@/,""),displayName:($("displayName").value||"").trim(),bio:($("bio").value||"").trim(),email:($("email").value||"").trim(),avatar};localStorage.setItem("profile",JSON.stringify(profile));const profiles=JSON.parse(localStorage.getItem("userProfiles")||"{}");if(profile.username)profiles[profile.username.toLowerCase()]={avatar:profile.avatar||""};localStorage.setItem("userProfiles",JSON.stringify(profiles));renderHeader();$("drawerAvatar").src=avatar||defaultAvatar;$("drawerName").textContent=profile.displayName||"Мой профиль";$("drawerBio").textContent=profile.bio||"О себе не заполнено"}
 function renderHeader(){$("headName").textContent=profile.displayName||"Мой профиль";$("headSub").textContent=profile.username?"@"+profile.username:"Настрой профиль";$("pickAvatar").src=avatar||defaultAvatar}
 function toggleMore(){closePlus();openProfile()}function closeMore(){}function openProfile(){closeMore();closePlus();$("drawerAvatar").src=avatar||defaultAvatar;$("drawerName").textContent=profile.displayName||"Мой профиль";$("drawerBio").textContent=profile.bio||"О себе не заполнено";$("username").value=profile.username||"";$("displayName").value=profile.displayName||"";$("bio").value=profile.bio||"";$("email").value=profile.email||"";$("identityCode").textContent=profile.identityCode||"—";$("drawer").classList.add("open")}
 function closeProfile(){$("drawer").classList.remove("open")}
-function saveProfile(){saveLocal();closeProfile();go("chats")}function showRegister(){$("loginForm").style.display="none";$("registerForm").style.display="block"}
+function saveProfile(){saveLocal();syncCurrentUser();closeProfile();go("chats")}function showRegister(){$("loginForm").style.display="none";$("registerForm").style.display="block"}
 function showLogin(){$("loginForm").style.display="block";$("registerForm").style.display="none"}
 function makeCode(){return Array.from(crypto.getRandomValues(new Uint8Array(12))).map(x=>x.toString(16).padStart(2,"0")).join("").toUpperCase().match(/.{1,4}/g).join("-")}
-function logout(){localStorage.removeItem("sessionActive");closeMore();closeProfile();$("auth").style.display="flex";showLogin();$("authMsg").textContent="Сессия завершена на этом устройстве."}function finishLogin(a){if(!a)return false;try{profile=JSON.parse(localStorage.getItem("profile")||"{}")}catch(e){profile={}}profile.username=a.username||profile.username||"";profile.email=a.email||profile.email||"";profile.identityCode=a.identityCode||profile.identityCode||"";if(!profile.avatar)profile.avatar="";localStorage.setItem("profile",JSON.stringify(profile));localStorage.setItem("sessionActive","1");$("auth").style.display="none";$("authMsg").textContent="";renderHeader();renderChats();return true}
+function logout(){localStorage.removeItem("sessionActive");closeMore();closeProfile();$("auth").style.display="flex";showLogin();$("authMsg").textContent="Сессия завершена на этом устройстве."}function finishLogin(a){if(!a)return false;try{profile=JSON.parse(localStorage.getItem("profile")||"{}")}catch(e){profile={}}profile.username=a.username||profile.username||"";profile.email=a.email||profile.email||"";profile.identityCode=a.identityCode||profile.identityCode||"";if(!profile.avatar)profile.avatar="";localStorage.setItem("profile",JSON.stringify(profile));localStorage.setItem("sessionActive","1");$("auth").style.display="none";$("authMsg").textContent="";renderHeader();syncCurrentUser();renderChats();return true}
 function readAccount(){try{return JSON.parse(localStorage.getItem("account")||"null")}catch(e){return null}}
 function registerAccount(){const u=($("regUser").value||"").trim().replace(/^@/,"").toLowerCase(),n=($("regName").value||"").trim(),e=($("regEmail").value||"").trim().toLowerCase(),p=$("regPass").value||"";if(!u||!e||!p){$("authMsg").textContent="Заполни юзер, почту и пароль.";return}const code=makeCode();profile={username:u,displayName:n,email:e,avatar:"",bio:"",identityCode:code};localStorage.setItem("profile",JSON.stringify(profile));localStorage.setItem("account",JSON.stringify({username:u,email:e,password:p,identityCode:code}));const profiles=JSON.parse(localStorage.getItem("userProfiles")||"{}");profiles[u]={avatar:""};localStorage.setItem("userProfiles",JSON.stringify(profiles));finishLogin(JSON.parse(localStorage.getItem("account")))}
 function login(){const id=($("loginId").value||"").trim().replace(/^@/,"").toLowerCase(),p=$("loginPass").value||"",a=readAccount();if(!a){$("authMsg").textContent="Аккаунт на этом устройстве не найден. Создай аккаунт.";return}const username=String(a.username||"").toLowerCase(),email=String(a.email||"").toLowerCase();if(!id||!p||p!==String(a.password||"")||(id!==username&&id!==email)){$("authMsg").textContent="Неверный юзер/почта или пароль.";return}finishLogin(a)}
@@ -291,10 +352,28 @@ function deleteChatForEveryone(){localStorage.removeItem(chatKey(currentChat));l
 function toggleChatMenu(){$("chatMenu").classList.toggle("open")}
 function closeChatMenu(){const m=$("chatMenu");if(m)m.classList.remove("open")}
 function renderSearch(){$("view").innerHTML='<section class="screen"><div class="search"><input id="q" placeholder="Найти по юзу…"><button class="btn" onclick="searchUsers()">Найти</button></div><div id="results" class="muted">Введи @username.</div></section>';setTimeout(()=>$("q").focus(),0)}
-function searchUsers(){
+async function searchUsers(){
   const q=($("q").value||"").trim().replace(/^@/,"").toLowerCase();
   const r=$("results");
   if(!q){r.textContent="Введи @username.";return}
+  try{
+    const data=await api("/api/search?q="+encodeURIComponent(q));
+    const found=Array.isArray(data.users)?data.users:[];
+    if(found.length){
+      r.replaceChildren(...found.map(p=>{
+        const row=document.createElement("div");
+        row.className="user";
+        row.onclick=()=>openFound(p.username);
+        const av=makeAvatar(p.name||p.username,!!p.is_bot,false);
+        if(p.avatar){av.style.backgroundImage="url('"+p.avatar.replace(/'/g,"\\'")+"')";av.style.backgroundSize="cover";av.style.backgroundPosition="center";av.textContent=""}
+        const wrap=document.createElement("div");
+        const name=document.createElement("b");name.textContent="@"+p.username;
+        const sub=document.createElement("div");sub.className="muted";sub.textContent=p.is_assistant?"ассистент":(p.is_bot?"бот":"чел.");
+        wrap.append(name,sub);row.append(av,wrap);return row;
+      }));
+      return;
+    }
+  }catch(e){}
   const profiles=JSON.parse(localStorage.getItem("userProfiles")||"{}");
   let p=profiles[q]||null;
   if(q==="buzya") p={name:"Бузя",username:"buzya",isBot:true,isAssistant:true,avatar:""};
@@ -365,7 +444,7 @@ fileInput.onchange=e=>{
   reader.onload=()=>{addFileMessage(reader.result,f.name,f.type,f.size);fileInput.value=""};
   reader.readAsDataURL(f);
 };
-$("send").onclick=()=>{const t=$("text").value.trim();if(t){addTextMessage(t);$("text").value=""}};
+$("send").onclick=()=>{const t=$("text").value.trim();if(t){addTextMessage(t);sendServerMessage(currentChat,t);$("text").value=""}};
 $("text").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("send").click()}});
 }
 function addTextMessage(t,restoring=false){const empty=$("chatEmpty");if(empty)empty.remove();const x=document.createElement("div");x.className="msg me";x.innerHTML='<div class="msg-actions"><button class="delete-btn">Удалить</button></div><div class="body" style="display:block!important;color:#4b4568!important;-webkit-text-fill-color:#4b4568!important;"></div>';x.querySelector(".body").textContent=t;x.querySelector(".delete-btn").onclick=()=>deleteMessage(x);$("messages").appendChild(x);if(!restoring){const items=loadMessages(currentChat);items.push({type:"text",text:t});saveMessages(currentChat,items)}scrollMessages()}
