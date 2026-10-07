@@ -28,7 +28,7 @@ header{height:64px;display:flex;align-items:center;gap:11px;padding:8px 14px;bor
 <div class="field"><label>Юзер</label><input id="username" maxlength="32" placeholder="@username"></div>
 <div class="field"><label>Имя</label><input id="displayName" maxlength="40" placeholder="Как тебя называть"></div>
 <div class="field"><label>О себе</label><input id="bio" maxlength="120" placeholder="Пара слов"></div>
-<div class="field"><label>Аватар</label><label class="pick"><img id="pickAvatar" class="avatar"><span>Выбрать картинку</span></label><input id="file" type="file" accept="image/*" hidden></div>
+<div class="field"><label>Почта</label><input id="email" type="email" placeholder="Личная почта"></div><div class="field"><label>Код идентификации</label><div id="identityCode" style="background:#10131a;border:1px solid #353b49;border-radius:12px;padding:10px;font-family:ui-monospace,monospace;word-break:break-all">—</div><button class="btn secondary" style="margin-top:7px" onclick="regenerateCode()">Новый код</button></div><div class="field"><label>Аватар</label><label class="pick"><img id="pickAvatar" class="avatar"><span>Выбрать картинку</span></label><input id="file" type="file" accept="image/*" hidden></div>
 <div class="row"><button class="btn" onclick="saveProfile()">Сохранить</button><button class="btn secondary" onclick="closeProfile()">Закрыть</button></div>
 </div></div>
 
@@ -36,9 +36,9 @@ header{height:64px;display:flex;align-items:center;gap:11px;padding:8px 14px;bor
 const $=id=>document.getElementById(id);
 const defaultAvatar="data:image/svg+xml,"+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><rect width='100%' height='100%' rx='50' fill='#303644'/><text x='50%' y='59%' text-anchor='middle' font-size='46'>🫵</text></svg>");
 let profile=JSON.parse(localStorage.getItem("profile")||"{}"); let avatar=profile.avatar||""; let currentChat="";
-function saveLocal(){profile={username:($("username").value||"").trim().replace(/^@/,""),displayName:($("displayName").value||"").trim(),bio:($("bio").value||"").trim(),avatar};localStorage.setItem("profile",JSON.stringify(profile));renderHeader()}
+function saveLocal(){profile={...profile,username:($("username").value||"").trim().replace(/^@/,""),displayName:($("displayName").value||"").trim(),bio:($("bio").value||"").trim(),email:($("email").value||"").trim(),avatar};localStorage.setItem("profile",JSON.stringify(profile));renderHeader()}
 function renderHeader(){$("headName").textContent=profile.displayName||"Мой профиль";$("headSub").textContent=profile.username?"@"+profile.username:"Настрой профиль";$("headAvatar").src=avatar||defaultAvatar;$("pickAvatar").src=avatar||defaultAvatar}
-function openProfile(){$("username").value=profile.username||"";$("displayName").value=profile.displayName||"";$("bio").value=profile.bio||"";$("drawer").classList.add("open")}
+function openProfile(){$("username").value=profile.username||"";$("displayName").value=profile.displayName||"";$("bio").value=profile.bio||"";$("email").value=profile.email||"";$("identityCode").textContent=profile.identityCode||"—";$("drawer").classList.add("open")}
 function closeProfile(){$("drawer").classList.remove("open")}
 function saveProfile(){saveLocal();closeProfile();go("chats")}function showRegister(){$("loginForm").style.display="none";$("registerForm").style.display="block"}
 function showLogin(){$("loginForm").style.display="block";$("registerForm").style.display="none"}
@@ -56,7 +56,7 @@ function searchUsers(){const q=($("q").value||"").trim().replace(/^@/,"").toLowe
 function openFound(u){$("view").innerHTML='<section class="profile"><img class="bigavatar" src="'+defaultAvatar+'"><h2>@'+u+'</h2><div class="muted">Профиль пользователя</div><br><button class="btn" onclick="openChat(\''+u+'\')">Написать</button></section>'}
 function openChat(u,isAI=false){
 currentChat=u;
-$("view").innerHTML='<section id="messages"><div id="chatEmpty" class="empty"><b>@'+u+'</b>Здесь будет ваш диалог.</div></section>';
+$("view").innerHTML='<section id="messages"><div id="chatEmpty" class="empty"><b>@'+u+'</b><span style="display:inline-block;margin-top:8px;padding:4px 8px;background:#303643;border-radius:9px;font-size:11px">🤖 LLM7 подключён как внутренний ассистент</span><br>Здесь будет ваш диалог.</div></section>';
 document.querySelector(".bottom").style.display="none";
 const c=document.createElement("div");c.className="composer";c.innerHTML='<button class="attach" title="Фото">＋</button><input id="photoInput" type="file" accept="image/*" hidden><textarea id="text" placeholder="Написать сообщение…" rows="1"></textarea><button id="send">➤</button>';
 document.querySelector(".app").appendChild(c);
