@@ -296,7 +296,7 @@ function searchUsers(){
   const r=$("results");
   if(!q){r.textContent="Введи @username.";return}
   const profiles=JSON.parse(localStorage.getItem("userProfiles")||"{}");
-  const p=profiles[q];
+  const p=q==="buzya"?{name:"Бузя",isBot:true,isAssistant:true,avatar:""}:(profiles[q]||null);
   if(!p){r.textContent="Пользователь не найден.";return}
   const row=document.createElement("div");row.className="user";row.onclick=()=>openFound(q);
   const av=makeAvatar(q,!!p.isBot,false);
@@ -308,9 +308,9 @@ function searchUsers(){
 }
 function openFound(u){
   const profiles=JSON.parse(localStorage.getItem("userProfiles")||"{}");
-  const p=profiles[u]||{};
+  const p=u==="buzya"?{name:"Бузя",isBot:true,isAssistant:true,avatar:""}:(profiles[u]||{});
   const src=p.avatar||getStoredAvatar(u);
-  $("view").innerHTML='<section class="profile"><div id="foundAvatar" class="avatar bigavatar" style="margin:auto"></div><h2>@'+u+'</h2><div class="muted">'+(p.isBot?"Бот":"Профиль пользователя")+'</div><br><button class="btn" id="foundWrite">Написать</button></section>';
+  $("view").innerHTML='<section class="profile"><div id="foundAvatar" class="avatar bigavatar" style="margin:auto"></div><h2>@'+u+'</h2><div class="muted">'+(p.isAssistant?"ассистент":(p.isBot?"Бот":"Профиль пользователя"))+'</div><br><button class="btn" id="foundWrite">Написать</button></section>';
   const av=$("foundAvatar");
   if(src){av.style.backgroundImage="url('"+src.replace(/'/g,"\\'")+"')";av.style.backgroundSize="cover";av.style.backgroundPosition="center"}else av.textContent=p.isBot?"ИИ":"👤";
   $("foundWrite").onclick=()=>openChat(p.name||u,!!p.isBot,false)
