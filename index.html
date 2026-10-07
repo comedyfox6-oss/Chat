@@ -448,7 +448,7 @@ function addBotTextMessage(t){
   x.querySelector(".body").textContent=t;
   $("messages").appendChild(x);
   const items=loadMessages(currentChat);
-  items.push({type:"text",text:t,from:"bot"});
+  items.push({type:"text",text:t,from:"bot",sender:currentChat||""});
   saveMessages(currentChat,items);
   scrollMessages();
 }
@@ -459,7 +459,7 @@ removeComposer();
 const saved=loadMessages(u);
 $("view").innerHTML='<section id="messages"><div class="chat-head"><div class="chat-meta"><button class="chat-back" onclick="renderChats()" aria-label="Назад">&lt;</button><div><div class="chat-title">@'+u+'</div><div class="chat-sub">'+(getTag(u,isAI))+'</div></div><div class="chat-actions"><button onclick="toggleChatMenu()" aria-label="Действия чата">⋮</button><div id="chatMenu" class="chat-menu"><button id="renameAIButton" class="rename" onclick="renameCurrentAI()"> Переименовать</button><button class="danger" onclick="exitChat()">Выйти из чата</button><button class="danger" onclick="deleteChatForMe()">Удалить чат у себя</button><button class="danger" onclick="deleteChatForEveryone()">Удалить чат у всех</button></div></div></div></div><div id="chatEmpty" class="empty" style="display:'+(saved.length?"none":"block")+'"><b>Начало диалога</b>Здесь пока нет сообщений.</div></section>';
 document.querySelector(".bottom").style.display="flex";const renameBtn=$("renameAIButton");if(renameBtn)renameBtn.style.display=(isAI&&!isAssistant(u)&&!isGroup)?"block":"none";
-for(const item of saved){const mine=!item.sender||sameUser(item.sender,profile.username);if(item.type==="photo")addPhotoMessage(item.src,true,mine);else if(item.type==="audio")addAudioMessage(item.src,item.name,item.mime,true,mine);else if(item.type==="file")addFileMessage(item.src,item.name,item.mime,item.size,true,mine);else addTextMessage(item.text,true,mine)}
+for(const item of saved){const mine=item.from==="bot"?false:(item.sender?sameUser(item.sender,profile.username):true);if(item.type==="photo")addPhotoMessage(item.src,true,mine);else if(item.type==="audio")addAudioMessage(item.src,item.name,item.mime,true,mine);else if(item.type==="file")addFileMessage(item.src,item.name,item.mime,item.size,true,mine);else addTextMessage(item.text,true,mine)}
 const c=document.createElement("div");c.className="composer";c.innerHTML='<button class="attach" title="Фото, музыка или документ" aria-label="Прикрепить файл"></button><input id="photoInput" type="file" accept="image/*" hidden><input id="audioInput" type="file" accept="audio/*" hidden><input id="fileInput" type="file" accept=".pdf,.doc,.docx,.txt,.rtf,.xls,.xlsx,.ppt,.pptx" hidden><textarea id="text" placeholder="Написать сообщение…" rows="1"></textarea><button id="send" aria-label="Отправить"><svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="sendGradient" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#806fd0"/><stop offset=".52" stop-color="#8a78d8"/><stop offset="1" stop-color="#b5c96d"/></linearGradient></defs><path fill="url(#sendGradient)" d="M5 22.5 43 5 30 43 23 28 5 22.5Zm18.8 4.2L39 10.2 27.3 29.5l-3.5-2.8Z"/></svg></button>';
 document.querySelector(".app").appendChild(c);
 const attach=c.querySelector(".attach"), photo=c.querySelector("#photoInput"), audio=c.querySelector("#audioInput"), fileInput=c.querySelector("#fileInput");
