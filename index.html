@@ -145,9 +145,11 @@ $("file").onchange=e=>{const f=e.target.files[0];if(!f||!f.type.startsWith("imag
 function go(page){closePlus();removeComposer();document.querySelector(".bottom").style.display="flex";if(page==="search")renderSearch();else if(page==="friends")renderFriends();else renderChats();document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));if(page==="friends")$("nFriends").classList.add("active");else if(page==="chats")$("nChats").classList.add("active")}
 function renderChats(){
   removeComposer();
+  const hidden=JSON.parse(localStorage.getItem("hiddenChats")||"[]");
   const chats=[];
   const seen=new Set();
   const add=(name,isAI,isGroup=false)=>{
+    if(hidden.includes(name.toLowerCase()))return;
     const key=(isGroup?"group:":"chat:")+name.toLowerCase();
     if(seen.has(key))return;
     const items=loadMessages(name);
@@ -180,8 +182,8 @@ function chatKey(u){return "chat:"+u.toLowerCase()}
 function loadMessages(u){return JSON.parse(localStorage.getItem(chatKey(u))||"[]")}
 function saveMessages(u,items){localStorage.setItem(chatKey(u),JSON.stringify(items))}
 function exitChat(){closeChatMenu();renderChats()}
-function deleteChatForMe(){localStorage.removeItem(chatKey(currentChat));closeChatMenu();renderChats()}
-function deleteChatForEveryone(){localStorage.removeItem(chatKey(currentChat));localStorage.setItem("deleteForEveryone:"+currentChat.toLowerCase(),Date.now().toString());closeChatMenu();renderChats()}
+function deleteChatForMe(){localStorage.removeItem(chatKey(currentChat));const h=JSON.parse(localStorage.getItem("hiddenChats")||"[]");if(!h.includes(currentChat.toLowerCase()))h.push(currentChat.toLowerCase());localStorage.setItem("hiddenChats",JSON.stringify(h));closeChatMenu();renderChats()}
+function deleteChatForEveryone(){localStorage.removeItem(chatKey(currentChat));localStorage.setItem("deleteForEveryone:"+currentChat.toLowerCase(),Date.now().toString());const h=JSON.parse(localStorage.getItem("hiddenChats")||"[]");if(!h.includes(currentChat.toLowerCase()))h.push(currentChat.toLowerCase());localStorage.setItem("hiddenChats",JSON.stringify(h));closeChatMenu();renderChats()}
 function toggleChatMenu(){$("chatMenu").classList.toggle("open")}
 function closeChatMenu(){const m=$("chatMenu");if(m)m.classList.remove("open")}
 function renderSearch(){$("view").innerHTML='<section class="screen"><div class="search"><input id="q" placeholder="Найти по юзу…"><button class="btn" onclick="searchUsers()">Найти</button></div><div id="results" class="muted">Введи @username.</div></section>';setTimeout(()=>$("q").focus(),0)}
@@ -190,7 +192,9 @@ function openFound(u){const src=getStoredAvatar(u);$("view").innerHTML='<section
 function isAssistant(u){return u==="LLM7"||u==="Бузя"}
 function getTag(u,isAI=false){return isAssistant(u)?"ассистент":isAI?"бот":"чел."}
 function renameCurrentAI(){if(!currentChatIsAI||isAssistant(currentChat))return;const next=prompt("Новое имя ИИ",currentChat);if(!next)return;const name=next.trim().slice(0,40);if(!name||isAssistant(name))return;const found=aiProfiles.find(x=>x.name===currentChat);if(found)found.name=name;localStorage.setItem("aiProfiles",JSON.stringify(aiProfiles));const oldKey=chatKey(currentChat),items=loadMessages(currentChat);localStorage.setItem(chatKey(name),JSON.stringify(items));if(oldKey!==chatKey(name))localStorage.removeItem(oldKey);currentChat=name;openChat(name,true)}function openChat(u,isAI=false,isGroup=false){
-removeComposer();currentChat=u;currentChatIsAI=isAI;currentChatIsGroup=isGroup;closePlus();closeMore();
+removeComposer();
+  const hidden=JSON.parse(localStorage.getItem("hiddenChats")||"[]");
+  localStorage.setItem("hiddenChats",JSON.stringify(hidden.filter(x=>x!==u.toLowerCase())));currentChat=u;currentChatIsAI=isAI;currentChatIsGroup=isGroup;closePlus();closeMore();
 const saved=loadMessages(u);
 $("view").innerHTML='<section id="messages"><div class="chat-head"><div class="chat-meta"><button class="chat-back" onclick="renderChats()" aria-label="Назад">&lt;</button><div><div class="chat-title">@'+u+'</div><div class="chat-sub">'+(getTag(u,isAI))+'</div></div><div class="chat-actions"><button onclick="toggleChatMenu()" aria-label="Действия чата">⋮</button><div id="chatMenu" class="chat-menu"><button id="renameAIButton" class="rename" onclick="renameCurrentAI()"> Переименовать</button><button class="danger" onclick="exitChat()">Выйти из чата</button><button class="danger" onclick="deleteChatForMe()">Удалить чат у себя</button><button class="danger" onclick="deleteChatForEveryone()">Удалить чат у всех</button></div></div></div></div><div id="chatEmpty" class="empty" style="display:'+(saved.length?"none":"block")+'"><b>Начало диалога</b>Здесь пока нет сообщений.</div></section>';
 document.querySelector(".bottom").style.display="flex";const renameBtn=$("renameAIButton");if(renameBtn)renameBtn.style.display=(isAI&&!isAssistant(u)&&!isGroup)?"block":"none";
