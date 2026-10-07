@@ -1,75 +1,52 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Два дебила</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;height:100%;background:#0d0f14;color:#f4f5f7;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 body{display:flex;justify-content:center}.app{width:min(760px,100%);height:100dvh;background:#151821;display:flex;flex-direction:column;overflow:hidden}
 header{height:64px;display:flex;align-items:center;gap:11px;padding:8px 14px;border-bottom:1px solid #292d38;background:#181b24}
-.menu{font-size:23px;background:none;padding:5px;color:#cbd0db}.avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;background:#303644;display:grid;place-items:center;font-size:21px;flex:none}
-.headtext{min-width:0;flex:1}.name{font-weight:750;font-size:16px}.presence{font-size:12px;color:#8f98a9}.online{color:#61db87}
-#messages{flex:1;overflow:auto;padding:18px 13px 10px;display:flex;flex-direction:column;gap:8px}
-.msg{max-width:80%;padding:9px 12px;border-radius:17px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.35}
-.me{align-self:flex-end;background:#5369e9;border-bottom-right-radius:5px}.them{align-self:flex-start;background:#292e39;border-bottom-left-radius:5px}
-.meta{font-size:10px;opacity:.55;margin-top:3px}.empty{margin:auto;text-align:center;color:#858e9e}.empty b{display:block;color:#cfd4de;font-size:20px;margin-bottom:6px}
-.composer{padding:9px 10px calc(9px + env(safe-area-inset-bottom));border-top:1px solid #292d38;background:#181b24;display:flex;gap:8px;align-items:end}
-#text{flex:1;min-height:44px;max-height:140px;resize:none;border:1px solid #353b49;border-radius:19px;background:#10131a;color:#fff;padding:11px 14px;font:inherit;outline:none}
-button{border:0;border-radius:16px;background:#5b70ed;color:#fff;font-weight:700;cursor:pointer}#send{width:46px;height:44px;font-size:19px}
-.drawer{position:absolute;inset:0;display:none;background:#0008;z-index:5}.drawer.open{display:block}.panel{width:min(340px,88%);height:100%;background:#171a22;padding:18px;box-shadow:8px 0 30px #0008}
-.panel h2{margin:0 0 16px}.field{margin:13px 0}.field label{display:block;color:#9fa8b8;font-size:12px;margin-bottom:6px}
-input{width:100%;padding:11px;border-radius:10px;border:1px solid #353b49;background:#10131a;color:#fff;font:inherit}
-.row{display:flex;gap:8px}.row button{padding:10px 12px}.secondary{background:#303643}.share{margin-top:10px;width:100%;padding:11px}
-#file{display:none}.avatarPick{cursor:pointer;display:flex;align-items:center;gap:10px}.avatarPick .avatar{width:54px;height:54px}
-.toast{position:fixed;bottom:78px;left:50%;transform:translateX(-50%);background:#252a35;padding:9px 13px;border-radius:12px;display:none;z-index:9;font-size:13px}
+.icon{border:0;background:none;color:#dfe3eb;font-size:22px;padding:6px;cursor:pointer}.avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;background:#303644;display:grid;place-items:center;font-size:20px;flex:none}
+.headtext{min-width:0;flex:1}.name{font-weight:750;font-size:16px}.sub{font-size:12px;color:#8f98a9}.online{color:#61db87}
+.view{flex:1;min-height:0;overflow:auto}.screen{padding:18px 14px}.search{display:flex;gap:8px;margin-bottom:14px}.search input{flex:1}.card,input{border:1px solid #353b49;background:#10131a;color:#fff;border-radius:13px;padding:11px;font:inherit}.user{display:flex;align-items:center;gap:11px;padding:12px;border-radius:14px;background:#20242e;margin:7px 0;cursor:pointer}.user:hover{background:#282d38}.user .avatar{width:46px;height:46px}.muted{color:#8f98a9;font-size:13px}.bigavatar{width:92px;height:92px;border-radius:50%;object-fit:cover;background:#303644}.profile{text-align:center;padding:25px 10px}.profile h2{margin:12px 0 4px}.btn{border:0;border-radius:12px;background:#5b70ed;color:white;padding:11px 15px;font-weight:700;cursor:pointer}.secondary{background:#303643}.field{margin:13px 0;text-align:left}.field label{display:block;color:#9fa8b8;font-size:12px;margin-bottom:6px}.field input{width:100%}
+#messages{height:100%;overflow:auto;padding:18px 13px 10px;display:flex;flex-direction:column;gap:8px}.msg{max-width:80%;padding:9px 12px;border-radius:17px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.35}.me{align-self:flex-end;background:#5369e9;border-bottom-right-radius:5px}.them{align-self:flex-start;background:#292e39;border-bottom-left-radius:5px}.meta{font-size:10px;opacity:.55;margin-top:3px}.composer{padding:9px 10px calc(9px + env(safe-area-inset-bottom));border-top:1px solid #292d38;background:#181b24;display:flex;gap:8px;align-items:end}#text{flex:1;min-height:44px;max-height:140px;resize:none;border:1px solid #353b49;border-radius:19px;background:#10131a;color:#fff;padding:11px 14px;font:inherit;outline:none}#send{width:46px;height:44px}
+.bottom{height:58px;border-top:1px solid #292d38;background:#181b24;display:flex;justify-content:space-around;align-items:center}.nav{background:none;color:#8f98a9;border:0;font-size:12px;cursor:pointer}.nav b{display:block;font-size:20px}.nav.active{color:#fff}
+.drawer{position:absolute;inset:0;display:none;background:#0008;z-index:5}.drawer.open{display:block}.panel{width:min(350px,90%);height:100%;background:#171a22;padding:18px;box-shadow:8px 0 30px #0008}.panel h2{margin:0 0 18px}.row{display:flex;gap:8px;flex-wrap:wrap}.pick{cursor:pointer;display:flex;align-items:center;gap:10px}.empty{text-align:center;color:#858e9e;padding:55px 20px}.empty b{display:block;color:#cfd4de;font-size:20px;margin-bottom:6px}
 </style>
 </head>
 <body>
 <div class="app">
-<header>
-<button class="menu" onclick="toggleMenu()">☰</button>
-<img id="headAvatar" class="avatar" alt="">
-<div class="headtext"><div class="name" id="headName">Дебил №2</div><div class="presence" id="presence">Подключение…</div></div>
-</header>
-<div id="messages"><div class="empty"><b>Два дебила 🫵</b>Откройте одну комнату и начинайте нести хуйню.</div></div>
-<div class="composer"><textarea id="text" rows="1" placeholder="Написать сообщение…"></textarea><button id="send" onclick="sendMsg()">➤</button></div>
+<header><button class="icon" onclick="go('search')">⌕</button><img id="headAvatar" class="avatar"><div class="headtext"><div class="name" id="headName">Мой профиль</div><div class="sub" id="headSub">Настрой профиль</div></div><button class="icon" onclick="openProfile()">⋮</button></header>
+<main id="view" class="view"></main>
+<nav class="bottom"><button id="nChats" class="nav active" onclick="go('chats')"><b>💬</b>Чаты</button><button id="nSearch" class="nav" onclick="go('search')"><b>⌕</b>Юзеры</button><button id="nMe" class="nav" onclick="openProfile()"><b>●</b>Профиль</button></nav>
 </div>
 
-<div id="drawer" class="drawer" onclick="if(event.target===this)toggleMenu()">
-<div class="panel">
-<h2>Чат</h2>
-<div class="field"><label>Твоё имя</label><input id="myName" maxlength="32" placeholder="Дебил №1"></div>
-<div class="field"><label>Имя друга</label><input id="friendName" maxlength="32" placeholder="Дебил №2"></div>
-<div class="field"><label>Аватар</label><label class="avatarPick"><img id="pickAvatar" class="avatar"><span>Нажми, чтобы выбрать картинку</span></label><input id="file" type="file" accept="image/*"></div>
-<div class="field"><label>Комната</label><input id="room" maxlength="40" placeholder="например: sanya"></div>
-<div class="field"><label>Cloudflare Worker</label><input id="server" placeholder="https://....workers.dev"></div>
-<div class="row"><button onclick="connect()">Подключиться</button><button class="secondary" onclick="copyRoom()">Скопировать ссылку</button></div>
-<button class="share" onclick="toggleMenu()">Закрыть</button>
+<div id="drawer" class="drawer" onclick="if(event.target===this)closeProfile()"><div class="panel">
+<h2>Профиль</h2>
+<div class="field"><label>Юзер</label><input id="username" maxlength="32" placeholder="@username"></div>
+<div class="field"><label>Имя</label><input id="displayName" maxlength="40" placeholder="Как тебя называть"></div>
+<div class="field"><label>О себе</label><input id="bio" maxlength="120" placeholder="Пара слов"></div>
+<div class="field"><label>Аватар</label><label class="pick"><img id="pickAvatar" class="avatar"><span>Выбрать картинку</span></label><input id="file" type="file" accept="image/*" hidden></div>
+<div class="row"><button class="btn" onclick="saveProfile()">Сохранить</button><button class="btn secondary" onclick="closeProfile()">Закрыть</button></div>
 </div></div>
-<div id="toast" class="toast"></div>
 
 <script>
 const $=id=>document.getElementById(id);
-let ws=null;
-const saved=JSON.parse(localStorage.getItem("chatSettings")||"{}");
-$("myName").value=saved.myName||"";
-$("friendName").value=saved.friendName||"Дебил №2";
-$("room").value=new URLSearchParams(location.search).get("room")||saved.room||"sanya";
-$("server").value=saved.server||"";
-let avatar=saved.avatar||"";
-function renderAvatar(){const a=avatar||"";$("headAvatar").src=a||"data:image/svg+xml,"+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><rect width='100%' height='100%' rx='40' fill='#303644'/><text x='50%' y='57%' text-anchor='middle' font-size='38'>🫵</text></svg>");$("pickAvatar").src=$("headAvatar").src}
-renderAvatar();
-$("file").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{avatar=r.result;renderAvatar();save()};r.readAsDataURL(f)};
-function save(){localStorage.setItem("chatSettings",JSON.stringify({myName:$("myName").value.trim(),friendName:$("friendName").value.trim()||"Дебил №2",room:$("room").value.trim()||"sanya",server:$("server").value.trim(),avatar}))}
-function toggleMenu(){ $("drawer").classList.toggle("open"); }
-function toast(s){$("toast").textContent=s;$("toast").style.display="block";setTimeout(()=>$("toast").style.display="none",1800)}
-function addMsg(text,me,time=new Date()){const e=document.querySelector(".empty");if(e)e.remove();const x=document.createElement("div");x.className="msg "+(me?"me":"them");const b=document.createElement("div");b.textContent=text;const m=document.createElement("div");m.className="meta";m.textContent=(me?($("myName").value||"Ты"):($("friendName").value||"Друг"))+" · "+time.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});x.append(b,m);$("messages").appendChild(x);$("messages").scrollTop=$("messages").scrollHeight}
-function connect(){save();const base=$("server").value.trim().replace(/\/$/,"");const room=encodeURIComponent($("room").value.trim()||"sanya");if(!base){toast("Сначала укажи Cloudflare Worker");return}if(ws)ws.close();try{ws=new WebSocket(base.replace(/^http/,"ws")+"/ws?room="+room)}catch(e){toast("Не удалось подключиться");return}
-$("presence").textContent="Подключение…";ws.onopen=()=>{$("presence").textContent="онлайн";$("presence").className="presence online";ws.send(JSON.stringify({type:"hello",name:$("myName").value||"Дебил №1"}));toast("Подключено")};ws.onclose=()=>{$("presence").textContent="оффлайн";$("presence").className="presence"};ws.onerror=()=>toast("Ошибка соединения");ws.onmessage=e=>{try{const d=JSON.parse(e.data);if(d.type==="msg")addMsg(d.text,false,new Date(d.time))}catch{}}}
-function sendMsg(){const t=$("text").value.trim();if(!t)return;if(!ws||ws.readyState!==1){toast("Сначала подключись к комнате");return}ws.send(JSON.stringify({type:"msg",text:t,time:Date.now()}));addMsg(t,true);$("text").value="";$("text").focus()}
-$("text").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMsg()}});
-function copyRoom(){save();const u=new URL(location.href);u.searchParams.set("room",$("room").value||"sanya");navigator.clipboard?.writeText(u.href).then(()=>toast("Ссылка скопирована"))}
+const defaultAvatar="data:image/svg+xml,"+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><rect width='100%' height='100%' rx='50' fill='#303644'/><text x='50%' y='59%' text-anchor='middle' font-size='46'>🫵</text></svg>");
+let profile=JSON.parse(localStorage.getItem("profile")||"{}"); let avatar=profile.avatar||"";
+function saveLocal(){profile={username:($("username").value||"").trim().replace(/^@/,""),displayName:($("displayName").value||"").trim(),bio:($("bio").value||"").trim(),avatar};localStorage.setItem("profile",JSON.stringify(profile));renderHeader()}
+function renderHeader(){$("headName").textContent=profile.displayName||"Мой профиль";$("headSub").textContent=profile.username?"@"+profile.username:"Настрой профиль";$("headAvatar").src=avatar||defaultAvatar;$("pickAvatar").src=avatar||defaultAvatar}
+function openProfile(){$("username").value=profile.username||"";$("displayName").value=profile.displayName||"";$("bio").value=profile.bio||"";$("drawer").classList.add("open")}
+function closeProfile(){$("drawer").classList.remove("open")}
+function saveProfile(){saveLocal();closeProfile();go("chats")}
+$("file").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{avatar=r.result;renderHeader()};r.readAsDataURL(f)}
+function go(page){if(page==="search")renderSearch();else renderChats();document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));$(page==="search"?"nSearch":"nChats").classList.add("active")}
+function renderChats(){$("view").innerHTML='<section class="screen"><div class="empty"><b>Пока пусто 🫵</b>Найди друга по юзу — и открой диалог.</div></section>'}
+function renderSearch(){$("view").innerHTML='<section class="screen"><div class="search"><input id="q" placeholder="Найти по юзу…"><button class="btn" onclick="searchUsers()">Найти</button></div><div id="results" class="muted">Введи @username.</div></section>';setTimeout(()=>$("q").focus(),0)}
+function searchUsers(){const q=($("q").value||"").trim().replace(/^@/,"").toLowerCase();const r=$("results");if(!q){r.textContent="Введи @username.";return}r.innerHTML='<div class="user" onclick="openFound(\''+q+'\')"><img class="avatar" src="'+defaultAvatar+'"><div><b>@'+q+'</b><div class="muted">Пользователь</div></div></div>'}
+function openFound(u){$("view").innerHTML='<section class="profile"><img class="bigavatar" src="'+defaultAvatar+'"><h2>@'+u+'</h2><div class="muted">Профиль пользователя</div><br><button class="btn" onclick="openChat(\''+u+'\')">Написать</button></section>'}
+function openChat(u){$("view").innerHTML='<section id="messages"><div class="empty"><b>@'+u+'</b>Здесь будет ваш диалог.</div></section>';document.querySelector(".bottom").style.display="none";$("headName").textContent="@"+u;$("headSub").textContent="диалог";const c=document.createElement("div");c.className="composer";c.innerHTML='<textarea id="text" placeholder="Написать сообщение…" rows="1"></textarea><button id="send">➤</button>';document.querySelector(".app").appendChild(c);$("send").onclick=()=>{const t=$("text").value.trim();if(t){const m=document.querySelector(".empty");if(m)m.remove();const x=document.createElement("div");x.className="msg me";x.textContent=t;document.querySelector("#messages").appendChild(x);$("text").value=""}}}
+renderHeader();renderChats();
 </script>
-</body>
-</html>
+</body></html>
