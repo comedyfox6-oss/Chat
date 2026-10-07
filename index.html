@@ -128,7 +128,30 @@ function registerAccount(){const u=($("regUser").value||"").trim().replace(/^@/,
 function login(){const id=($("loginId").value||"").trim().replace(/^@/,"").toLowerCase(),p=$("loginPass").value||"",a=readAccount();if(!a){$("authMsg").textContent="Аккаунт на этом устройстве не найден. Создай аккаунт.";return}const username=String(a.username||"").toLowerCase(),email=String(a.email||"").toLowerCase();if(!id||!p||p!==String(a.password||"")||(id!==username&&id!==email)){$("authMsg").textContent="Неверный юзер/почта или пароль.";return}finishLogin(a)}
 function loginByCode(){const code=($("loginCode").value||"").trim().toUpperCase(),a=readAccount();if(!a){$("authMsg").textContent="Аккаунт на этом устройстве не найден.";return}if(!code||code!==String(a.identityCode||"").toUpperCase()){$("authMsg").textContent="Неверный код.";return}finishLogin(a)}
 function togglePlus(){const m=$("plusMenu"),b=document.querySelector('.bottom .nav[onclick="togglePlus()"]'),a=document.querySelector(".app");if(m.style.display==="block"){m.style.display="none";return}closeProfile();closeChatMenu();const r=b.getBoundingClientRect(),ar=a.getBoundingClientRect(),w=190;let left=r.left-ar.left+r.width/2-w/2;left=Math.max(8,Math.min(left,ar.width-w-8));m.style.left=left+"px";m.style.right="auto";m.style.bottom=(ar.bottom-r.top+9)+"px";m.style.display="block"}function closePlus(){$("plusMenu").style.display="none"}
-function createAI(){closePlus();let base="Новый ИИ",name=base,i=2;while(aiProfiles.some(x=>x.name.toLowerCase()===name.toLowerCase()))name=base+" "+i++;aiProfiles.push({name});localStorage.setItem("aiProfiles",JSON.stringify(aiProfiles));openChat(name,true)}
+async function createAI(){
+  closePlus();
+  let name=(prompt("Имя бота")||"").trim().slice(0,40);
+  if(!name)return;
+  let username=(prompt("Юзер бота, например @mybot")||"").trim().replace(/^@/,"").toLowerCase().replace(/[^a-z0-9_а-яё]/gi,"").slice(0,32);
+  if(!username){alert("Юзер обязателен.");return}
+  const profiles=JSON.parse(localStorage.getItem("userProfiles")||"{}");
+  if(profiles[username]){alert("Этот юзер уже занят.");return}
+  const file=document.createElement("input");
+  file.type="file";file.accept="image/*";file.style.display="none";document.body.appendChild(file);
+  const avatar=await new Promise(resolve=>{
+    let done=false;
+    const finish=v=>{if(done)return;done=true;file.remove();resolve(v||"")};
+    file.onchange=()=>{const f=file.files[0];if(!f){finish("");return}const rr=new FileReader();rr.onload=()=>finish(rr.result);rr.onerror=()=>finish("");rr.readAsDataURL(f)};
+    setTimeout(()=>{if(!done){finish("")}},30000);
+    file.click();
+  });
+  const bot={name,username,avatar:avatar||"",isBot:true};
+  aiProfiles.push(bot);
+  localStorage.setItem("aiProfiles",JSON.stringify(aiProfiles));
+  profiles[username]={avatar:bot.avatar,name:bot.name,isBot:true};
+  localStorage.setItem("userProfiles",JSON.stringify(profiles));
+  openChat(name,true);
+}
 function createGroup(){closePlus();const name=(prompt("Название группы")||"").trim().slice(0,40);if(!name)return;if(groups.some(x=>x.name.toLowerCase()===name.toLowerCase())){alert("Группа с таким названием уже есть.");return}const raw=prompt("Участники через запятую, например: @sanya, @alex")||"";const members=raw.split(",").map(x=>x.trim().replace(/^@/,"")).filter(Boolean).slice(0,50);const group={id:"g"+Date.now().toString(36),name,members};groups.push(group);localStorage.setItem("groups",JSON.stringify(groups));openChat(name,false,true)}
 function renderFriends(){removeComposer();$("view").innerHTML='<section class="screen"><div class="section-title">Всегда рядом</div><div class="user" onclick="openChat(\'Бузя\',true)"><div class="avatar buzy-avatar" style="display:grid;place-items:center">/n</div><div><b>Бузя</b><div class="muted">ассистент</div></div></div>'+(aiProfiles.length?'<div class="section-title" style="margin-top:24px">Мои ИИ</div>': '')+aiProfiles.map(x=>'<div class="user" onclick="openChat(\''+x.name.replace(/'/g,"\\\\'")+'\',true)"><div class="avatar" style="display:grid;place-items:center"></div><div><b>'+x.name+'</b><div class="muted">бот</div></div></div>').join('')+'<div class="section-title" style="margin-top:24px">Люди</div><button class="btn secondary" style="width:100%" onclick="go(\'search\')"> Найти друга по @username</button></section>'}
 function regenerateCode(){profile.identityCode=makeCode();localStorage.setItem("profile",JSON.stringify(profile));const a=JSON.parse(localStorage.getItem("account")||"null");if(a){a.identityCode=profile.identityCode;localStorage.setItem("account",JSON.stringify(a))}const profiles=JSON.parse(localStorage.getItem("userProfiles")||"{}");if(profile.username)profiles[profile.username.toLowerCase()]={avatar};localStorage.setItem("userProfiles",JSON.stringify(profiles));$("identityCode").textContent=profile.identityCode}
@@ -188,8 +211,30 @@ function deleteChatForEveryone(){localStorage.removeItem(chatKey(currentChat));l
 function toggleChatMenu(){$("chatMenu").classList.toggle("open")}
 function closeChatMenu(){const m=$("chatMenu");if(m)m.classList.remove("open")}
 function renderSearch(){$("view").innerHTML='<section class="screen"><div class="search"><input id="q" placeholder="Найти по юзу…"><button class="btn" onclick="searchUsers()">Найти</button></div><div id="results" class="muted">Введи @username.</div></section>';setTimeout(()=>$("q").focus(),0)}
-function searchUsers(){const q=($("q").value||"").trim().replace(/^@/,"").toLowerCase();const r=$("results");if(!q){r.textContent="Введи @username.";return}const row=document.createElement("div");row.className="user";row.onclick=()=>openFound(q);const av=makeAvatar(q,false,false);const wrap=document.createElement("div");const name=document.createElement("b");name.textContent="@"+q;const sub=document.createElement("div");sub.className="muted";sub.textContent="чел.";wrap.append(name,sub);row.append(av,wrap);r.replaceChildren(row)}
-function openFound(u){const src=getStoredAvatar(u);$("view").innerHTML='<section class="profile"><div id="foundAvatar" class="avatar bigavatar" style="margin:auto"></div><h2>@'+u+'</h2><div class="muted">Профиль пользователя</div><br><button class="btn" id="foundWrite">Написать</button></section>';const av=$("foundAvatar");if(src){av.style.backgroundImage="url('"+src.replace(/'/g,"\\'")+"')";av.style.backgroundSize="cover";av.style.backgroundPosition="center"}else av.textContent="👤";$("foundWrite").onclick=()=>openChat(u)}
+function searchUsers(){
+  const q=($("q").value||"").trim().replace(/^@/,"").toLowerCase();
+  const r=$("results");
+  if(!q){r.textContent="Введи @username.";return}
+  const profiles=JSON.parse(localStorage.getItem("userProfiles")||"{}");
+  const p=profiles[q];
+  if(!p){r.textContent="Пользователь не найден.";return}
+  const row=document.createElement("div");row.className="user";row.onclick=()=>openFound(q);
+  const av=makeAvatar(q,!!p.isBot,false);
+  if(p.avatar){av.style.backgroundImage="url('"+p.avatar.replace(/'/g,"\\'")+"')";av.style.backgroundSize="cover";av.style.backgroundPosition="center";av.textContent=""}
+  const wrap=document.createElement("div");
+  const name=document.createElement("b");name.textContent="@"+q;
+  const sub=document.createElement("div");sub.className="muted";sub.textContent=p.isBot?"бот":"чел.";
+  wrap.append(name,sub);row.append(av,wrap);r.replaceChildren(row)
+}
+function openFound(u){
+  const profiles=JSON.parse(localStorage.getItem("userProfiles")||"{}");
+  const p=profiles[u]||{};
+  const src=p.avatar||getStoredAvatar(u);
+  $("view").innerHTML='<section class="profile"><div id="foundAvatar" class="avatar bigavatar" style="margin:auto"></div><h2>@'+u+'</h2><div class="muted">'+(p.isBot?"Бот":"Профиль пользователя")+'</div><br><button class="btn" id="foundWrite">Написать</button></section>';
+  const av=$("foundAvatar");
+  if(src){av.style.backgroundImage="url('"+src.replace(/'/g,"\\'")+"')";av.style.backgroundSize="cover";av.style.backgroundPosition="center"}else av.textContent=p.isBot?"ИИ":"👤";
+  $("foundWrite").onclick=()=>openChat(p.name||u,!!p.isBot,false)
+}
 function isAssistant(u){return u==="LLM7"||u==="Бузя"}
 function getTag(u,isAI=false){return isAssistant(u)?"ассистент":isAI?"бот":"чел."}
 function renameCurrentAI(){if(!currentChatIsAI||isAssistant(currentChat))return;const next=prompt("Новое имя ИИ",currentChat);if(!next)return;const name=next.trim().slice(0,40);if(!name||isAssistant(name))return;const found=aiProfiles.find(x=>x.name===currentChat);if(found)found.name=name;localStorage.setItem("aiProfiles",JSON.stringify(aiProfiles));const oldKey=chatKey(currentChat),items=loadMessages(currentChat);localStorage.setItem(chatKey(name),JSON.stringify(items));if(oldKey!==chatKey(name))localStorage.removeItem(oldKey);currentChat=name;openChat(name,true)}function openChat(u,isAI=false,isGroup=false){
