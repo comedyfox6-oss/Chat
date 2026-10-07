@@ -1,34 +1,75 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Два дебила — P2P чат</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Два дебила</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#0f1117;color:#eee;font-family:system-ui,-apple-system,Segoe UI,sans-serif;height:100vh;display:flex;justify-content:center}.app{width:min(760px,100%);height:100vh;display:flex;flex-direction:column;background:#171a22}header{padding:14px 16px;border-bottom:1px solid #292e39;display:flex;align-items:center;gap:12px}.dot{width:11px;height:11px;border-radius:50%;background:#777}.dot.on{background:#52d273}h1{font-size:17px;margin:0}.sub{font-size:12px;color:#969eae}#setup{padding:18px;overflow:auto}.card{background:#20242e;border:1px solid #303645;border-radius:14px;padding:15px;margin-bottom:12px}label{font-size:13px;color:#aeb6c5;display:block;margin-bottom:7px}textarea,input{width:100%;background:#11141a;color:#eee;border:1px solid #363d4d;border-radius:10px;padding:10px;font:inherit;resize:vertical}textarea{min-height:100px}.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}button{border:0;border-radius:10px;padding:10px 13px;background:#5b72ff;color:#fff;font-weight:650;cursor:pointer}button.secondary{background:#303643}button.danger{background:#8e3945}small{color:#8e96a6}.hidden{display:none!important}#chat{flex:1;min-height:0;display:flex;flex-direction:column}#messages{flex:1;overflow:auto;padding:18px 14px;display:flex;flex-direction:column;gap:7px}.msg{max-width:78%;padding:9px 12px;border-radius:15px;white-space:pre-wrap;overflow-wrap:anywhere}.me{align-self:flex-end;background:#5269e8}.them{align-self:flex-start;background:#292e39}.time{font-size:10px;opacity:.6;margin-top:3px}.status{padding:6px 14px;font-size:12px;color:#9da6b7}.composer{padding:10px;border-top:1px solid #292e39;display:flex;gap:8px}#text{flex:1;min-height:44px;max-height:130px;resize:none}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:#0d0f14;color:#f4f5f7;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{display:flex;justify-content:center}.app{width:min(760px,100%);height:100dvh;background:#151821;display:flex;flex-direction:column;overflow:hidden}
+header{height:64px;display:flex;align-items:center;gap:11px;padding:8px 14px;border-bottom:1px solid #292d38;background:#181b24}
+.menu{font-size:23px;background:none;padding:5px;color:#cbd0db}.avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;background:#303644;display:grid;place-items:center;font-size:21px;flex:none}
+.headtext{min-width:0;flex:1}.name{font-weight:750;font-size:16px}.presence{font-size:12px;color:#8f98a9}.online{color:#61db87}
+#messages{flex:1;overflow:auto;padding:18px 13px 10px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:80%;padding:9px 12px;border-radius:17px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.35}
+.me{align-self:flex-end;background:#5369e9;border-bottom-right-radius:5px}.them{align-self:flex-start;background:#292e39;border-bottom-left-radius:5px}
+.meta{font-size:10px;opacity:.55;margin-top:3px}.empty{margin:auto;text-align:center;color:#858e9e}.empty b{display:block;color:#cfd4de;font-size:20px;margin-bottom:6px}
+.composer{padding:9px 10px calc(9px + env(safe-area-inset-bottom));border-top:1px solid #292d38;background:#181b24;display:flex;gap:8px;align-items:end}
+#text{flex:1;min-height:44px;max-height:140px;resize:none;border:1px solid #353b49;border-radius:19px;background:#10131a;color:#fff;padding:11px 14px;font:inherit;outline:none}
+button{border:0;border-radius:16px;background:#5b70ed;color:#fff;font-weight:700;cursor:pointer}#send{width:46px;height:44px;font-size:19px}
+.drawer{position:absolute;inset:0;display:none;background:#0008;z-index:5}.drawer.open{display:block}.panel{width:min(340px,88%);height:100%;background:#171a22;padding:18px;box-shadow:8px 0 30px #0008}
+.panel h2{margin:0 0 16px}.field{margin:13px 0}.field label{display:block;color:#9fa8b8;font-size:12px;margin-bottom:6px}
+input{width:100%;padding:11px;border-radius:10px;border:1px solid #353b49;background:#10131a;color:#fff;font:inherit}
+.row{display:flex;gap:8px}.row button{padding:10px 12px}.secondary{background:#303643}.share{margin-top:10px;width:100%;padding:11px}
+#file{display:none}.avatarPick{cursor:pointer;display:flex;align-items:center;gap:10px}.avatarPick .avatar{width:54px;height:54px}
+.toast{position:fixed;bottom:78px;left:50%;transform:translateX(-50%);background:#252a35;padding:9px 13px;border-radius:12px;display:none;z-index:9;font-size:13px}
 </style>
 </head>
-<body><div class="app">
-<header><span id="dot" class="dot"></span><div><h1>Два дебила 🫵</h1><div id="status" class="sub">Не подключено</div></div></header>
-<section id="setup">
-<div class="card"><b>1. Создать соединение</b><p><small>Первый участник нажимает кнопку и отправляет получившийся код второму.</small></p><button onclick="createOffer()">Создать код</button><textarea id="offerOut" readonly placeholder="Код приглашения…"></textarea></div>
-<div class="card"><b>2. Ответ друга</b><p><small>Первый участник вставляет сюда ответный код.</small></p><textarea id="answerIn" placeholder="Вставь ответ друга…"></textarea><div class="row"><button onclick="acceptAnswer()">Подключиться</button></div></div>
-<div class="card"><b>Если тебя пригласили</b><p><small>Вставь код приглашения и создай ответ.</small></p><textarea id="offerIn" placeholder="Вставь код приглашения…"></textarea><button onclick="createAnswer()">Ответить на приглашение</button><textarea id="answerOut" readonly placeholder="Ответный код…"></textarea></div>
-<div class="card"><button class="secondary" onclick="showChat()">Открыть чат</button><button class="danger" onclick="location.reload()">Сбросить</button></div>
-</section>
-<section id="chat" class="hidden"><div id="messages"></div><div id="chatStatus" class="status">Соединение устанавливается…</div><div class="composer"><textarea id="text" placeholder="Напиши что-нибудь гениальное…" rows="1"></textarea><button onclick="sendMsg()">➤</button></div></section>
+<body>
+<div class="app">
+<header>
+<button class="menu" onclick="toggleMenu()">☰</button>
+<img id="headAvatar" class="avatar" alt="">
+<div class="headtext"><div class="name" id="headName">Дебил №2</div><div class="presence" id="presence">Подключение…</div></div>
+</header>
+<div id="messages"><div class="empty"><b>Два дебила 🫵</b>Откройте одну комнату и начинайте нести хуйню.</div></div>
+<div class="composer"><textarea id="text" rows="1" placeholder="Написать сообщение…"></textarea><button id="send" onclick="sendMsg()">➤</button></div>
 </div>
+
+<div id="drawer" class="drawer" onclick="if(event.target===this)toggleMenu()">
+<div class="panel">
+<h2>Чат</h2>
+<div class="field"><label>Твоё имя</label><input id="myName" maxlength="32" placeholder="Дебил №1"></div>
+<div class="field"><label>Имя друга</label><input id="friendName" maxlength="32" placeholder="Дебил №2"></div>
+<div class="field"><label>Аватар</label><label class="avatarPick"><img id="pickAvatar" class="avatar"><span>Нажми, чтобы выбрать картинку</span></label><input id="file" type="file" accept="image/*"></div>
+<div class="field"><label>Комната</label><input id="room" maxlength="40" placeholder="например: sanya"></div>
+<div class="field"><label>Cloudflare Worker</label><input id="server" placeholder="https://....workers.dev"></div>
+<div class="row"><button onclick="connect()">Подключиться</button><button class="secondary" onclick="copyRoom()">Скопировать ссылку</button></div>
+<button class="share" onclick="toggleMenu()">Закрыть</button>
+</div></div>
+<div id="toast" class="toast"></div>
+
 <script>
-let pc,dc;const $=id=>document.getElementById(id);
-function setStatus(s,on=false){$('status').textContent=s;$('chatStatus').textContent=s;$('dot').className='dot '+(on?'on':'')}
-function b64(o){return btoa(unescape(encodeURIComponent(JSON.stringify(o))))}function unb64(s){return JSON.parse(decodeURIComponent(escape(atob(s.trim()))))}
-function waitIce(){return new Promise(resolve=>{if(!pc||pc.iceGatheringState==='complete')return resolve();pc.onicecandidate=()=>{if(pc.iceGatheringState==='complete')resolve()};setTimeout(resolve,5000)})}
-function makePC(){pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});pc.onconnectionstatechange=()=>{if(pc.connectionState==='connected'){setStatus('Подключено напрямую',true);showChat()}};return pc}
-function setupChannel(){dc.onopen=()=>{setStatus('Подключено напрямую',true);showChat()};dc.onclose=()=>setStatus('Соединение закрыто');dc.onmessage=e=>addMsg(e.data,'them')}
-async function createOffer(){makePC();dc=pc.createDataChannel('chat');setupChannel();const o=await pc.createOffer();await pc.setLocalDescription(o);await waitIce();$('offerOut').value=b64(pc.localDescription);setStatus('Код приглашения готов')}
-async function createAnswer(){makePC();pc.ondatachannel=e=>{dc=e.channel;setupChannel()};try{await pc.setRemoteDescription(unb64($('offerIn').value));const a=await pc.createAnswer();await pc.setLocalDescription(a);await waitIce();$('answerOut').value=b64(pc.localDescription);setStatus('Ответ готов — отправь его первому участнику')}catch(e){alert('Не удалось прочитать код: '+e)}}
-async function acceptAnswer(){try{await pc.setRemoteDescription(unb64($('answerIn').value));setStatus('Соединяемся…')}catch(e){alert('Не удалось прочитать ответ: '+e)}}
-function showChat(){$('setup').classList.add('hidden');$('chat').classList.remove('hidden');$('text').focus()}
-function addMsg(t,w){const x=document.createElement('div');x.className='msg '+(w==='me'?'me':'them');const b=document.createElement('div');b.textContent=t;const tm=document.createElement('div');tm.className='time';tm.textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});x.append(b,tm);$('messages').appendChild(x);$('messages').scrollTop=$('messages').scrollHeight}
-function sendMsg(){const t=$('text').value.trim();if(!t)return;if(!dc||dc.readyState!=='open'){alert('Сначала подключитесь друг к другу.');return}dc.send(t);addMsg(t,'me');$('text').value='';$('text').focus()}
-$('text').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg()}})
-</script></body></html>
+const $=id=>document.getElementById(id);
+let ws=null;
+const saved=JSON.parse(localStorage.getItem("chatSettings")||"{}");
+$("myName").value=saved.myName||"";
+$("friendName").value=saved.friendName||"Дебил №2";
+$("room").value=new URLSearchParams(location.search).get("room")||saved.room||"sanya";
+$("server").value=saved.server||"";
+let avatar=saved.avatar||"";
+function renderAvatar(){const a=avatar||"";$("headAvatar").src=a||"data:image/svg+xml,"+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><rect width='100%' height='100%' rx='40' fill='#303644'/><text x='50%' y='57%' text-anchor='middle' font-size='38'>🫵</text></svg>");$("pickAvatar").src=$("headAvatar").src}
+renderAvatar();
+$("file").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{avatar=r.result;renderAvatar();save()};r.readAsDataURL(f)};
+function save(){localStorage.setItem("chatSettings",JSON.stringify({myName:$("myName").value.trim(),friendName:$("friendName").value.trim()||"Дебил №2",room:$("room").value.trim()||"sanya",server:$("server").value.trim(),avatar}))}
+function toggleMenu(){ $("drawer").classList.toggle("open"); }
+function toast(s){$("toast").textContent=s;$("toast").style.display="block";setTimeout(()=>$("toast").style.display="none",1800)}
+function addMsg(text,me,time=new Date()){const e=document.querySelector(".empty");if(e)e.remove();const x=document.createElement("div");x.className="msg "+(me?"me":"them");const b=document.createElement("div");b.textContent=text;const m=document.createElement("div");m.className="meta";m.textContent=(me?($("myName").value||"Ты"):($("friendName").value||"Друг"))+" · "+time.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});x.append(b,m);$("messages").appendChild(x);$("messages").scrollTop=$("messages").scrollHeight}
+function connect(){save();const base=$("server").value.trim().replace(/\/$/,"");const room=encodeURIComponent($("room").value.trim()||"sanya");if(!base){toast("Сначала укажи Cloudflare Worker");return}if(ws)ws.close();try{ws=new WebSocket(base.replace(/^http/,"ws")+"/ws?room="+room)}catch(e){toast("Не удалось подключиться");return}
+$("presence").textContent="Подключение…";ws.onopen=()=>{$("presence").textContent="онлайн";$("presence").className="presence online";ws.send(JSON.stringify({type:"hello",name:$("myName").value||"Дебил №1"}));toast("Подключено")};ws.onclose=()=>{$("presence").textContent="оффлайн";$("presence").className="presence"};ws.onerror=()=>toast("Ошибка соединения");ws.onmessage=e=>{try{const d=JSON.parse(e.data);if(d.type==="msg")addMsg(d.text,false,new Date(d.time))}catch{}}}
+function sendMsg(){const t=$("text").value.trim();if(!t)return;if(!ws||ws.readyState!==1){toast("Сначала подключись к комнате");return}ws.send(JSON.stringify({type:"msg",text:t,time:Date.now()}));addMsg(t,true);$("text").value="";$("text").focus()}
+$("text").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMsg()}});
+function copyRoom(){save();const u=new URL(location.href);u.searchParams.set("room",$("room").value||"sanya");navigator.clipboard?.writeText(u.href).then(()=>toast("Ссылка скопирована"))}
+</script>
+</body>
+</html>
