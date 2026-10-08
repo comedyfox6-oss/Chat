@@ -56,12 +56,17 @@ export default {async fetch(request,env){
   if(url.pathname==="/api/ai"&&request.method==="POST"){try{return await handleAI(request,env)}catch(e){return json({error:"worker_error",message:e?.message||String(e)},500)}}
 
   if(url.pathname==="/api/users"&&request.method==="POST"){
-    const d=await readJson(request),username=cleanUser(d.username);
-    if(!username)return json({error:"username_required"},400);
-    return proxy(await registry(env).fetch(new Request("https://internal/registry/users",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...d,username})})));
+    try{
+      const d=await readJson(request),username=cleanUser(d.username);
+      if(!username)return json({error:"username_required"},400);
+      return proxy(await registry(env).fetch(new Request("https://internal/registry/users",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...d,username})})));
+    }catch(e){return json({error:"registry_error",message:e?.message||String(e)},500)}
   }
-  if(url.pathname==="/api/search"&&request.method==="GET"){
-    return proxy(await registry(env).fetch("https://internal/registry/search?q="+encodeURIComponent(cleanUser(url.searchParams.get("q")))));
+  if((url.pathname==="/api/search"||url.pathname==="/api/users/all")&&request.method==="GET"){
+    try{
+      const raw=url.pathname==="/api/users/all"?"":String(url.searchParams.get("q")||"");
+      return proxy(await registry(env).fetch("https://internal/registry/search?q="+encodeURIComponent(raw)));
+    }catch(e){return json({error:"registry_error",message:e?.message||String(e)},500)}
   }
   if(url.pathname==="/api/push/config"&&request.method==="GET"){const keys=await vapid(env);return json({publicKey:keys.publicKey});}
   if(url.pathname==="/api/push/subscribe"&&request.method==="POST"){const d=await readJson(request),username=cleanUser(d.username),subscription=d.subscription;if(!username||!subscription?.endpoint)return json({error:"subscription_required"},400);return proxy(await registry(env).fetch(new Request("https://internal/registry/push-subscribe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username,subscription})})));}
