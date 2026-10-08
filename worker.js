@@ -78,7 +78,7 @@ export default {async fetch(request,env){
     return proxy(await registry(env).fetch(new Request("https://internal/registry/friend-respond",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({from,user,action})})));
   }
 
-  const chatMatch=url.pathname.match(/^\\/api\\/chats\\/([^/]+)$/);
+  const chatMatch=url.pathname.match(/^\/api\/chats\/([^/]+)$/);
   if(chatMatch&&(request.method==="GET"||request.method==="POST"||request.method==="DELETE")){
     const other=cleanUser(decodeURIComponent(chatMatch[1])),d=request.method==="GET"?{}:await readJson(request);
     const me=cleanUser((request.method==="GET"||request.method==="DELETE")?url.searchParams.get("username"):d.sender||d.username);
