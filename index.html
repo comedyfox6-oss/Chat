@@ -161,25 +161,59 @@ async function sendServerMessage(chatUsername,text){
   const chat=String(chatUsername||"").replace(/^@/,"").trim().toLowerCase();
   if(!sender||!chat)return;
   try{
-    await api("/api/chats/"+encodeURIComponent(chat),{
-      method:"POST",
-      body:JSON.stringify({sender,text})
-    });
-  }catch(e){
-    console.warn("Не удалось сохранить сообщение на сервере:",e);
-  }
+    const data=await api("/api/chats/"+encodeURIComponent(chat),{method:"POST",body:JSON.stringify({sender,text})});
+    if(data&&data.message){
+      const items=loadMessages(chatUsername);const last=items[items.length-1];
+      if(last&&last.text===text){last.serverId=data.message.id;last.sender=sender;last.mine=true;last.createdAt=data.message.createdAt;saveMessages(chatUsername,items)}
+    }
+  }catch(e){console.warn("Не удалось сохранить сообщение на сервере:",e)}
 }
 
 async function loadServerMessages(chatUsername){
   const chat=String(chatUsername||"").replace(/^@/,"").trim().toLowerCase();
-  if(!chat)return [];
+  const me=String(profile.username||"").replace(/^@/,"").trim().toLowerCase();
+  if(!chat||!me)return [];
   try{
-    const data=await api("/api/chats/"+encodeURIComponent(chat));
+    const data=await api("/api/chats/"+encodeURIComponent(chat)+"?username="+encodeURIComponent(me));
     return Array.isArray(data.messages)?data.messages:[];
-  }catch(e){
-    console.warn("Не удалось загрузить сообщения с сервера:",e);
-    return [];
+  }catch(e){console.warn("Не удалось загрузить сообщения с сервера:",e);return []}
+}
+let chatSocket=null;
+function closeChatSocket(){if(chatSocket){try{chatSocket.close()}catch{}chatSocket=null}}
+function connectChatSocket(chatUsername){
+  closeChatSocket();
+  const me=String(profile.username||"").replace(/^@/,"").trim().toLowerCase();
+  const other=String(chatUsername||"").replace(/^@/,"").trim().toLowerCase();
+  if(!me||!other||currentChatIsAI||currentChatIsGroup)return;
+  const room=[me,other].sort().join("__").replace(/[^a-zA-Z0-9_а-яё-]/gi,"").slice(0,64);
+  try{
+    chatSocket=new WebSocket("wss://chatmes.comedyfox6.workers.dev/ws?room="+encodeURIComponent(room));
+    chatSocket.onmessage=e=>{
+      try{
+        const packet=JSON.parse(e.data);
+        const m=packet&&packet.message;
+        if(!m||m.sender===me||currentChat.toLowerCase()!==other)return;
+        addTextMessage(m.text,false,false);
+        const items=loadMessages(currentChat);const last=items[items.length-1];
+        if(last){last.serverId=m.id;last.sender=m.sender;last.mine=false;saveMessages(currentChat,items)}
+      }catch(err){console.warn("WS message error:",err)}
+    };
+    chatSocket.onerror=()=>{};
+  }catch(e){console.warn("WS connect error:",e)}
+}
+async function syncServerChat(chatUsername){
+  const server=await loadServerMessages(chatUsername);
+  if(!server.length)return;
+  const local=loadMessages(chatUsername);
+  const known=new Set(local.map(x=>x.serverId).filter(Boolean));
+  for(const m of server){
+    if(known.has(m.id))continue;
+    const mine=m.sender===String(profile.username||"").toLowerCase();
+    local.push({type:"text",text:m.text,from:"user",mine,sender:m.sender,serverId:m.id,createdAt:m.createdAt});
+    if(currentChat.toLowerCase()===String(chatUsername).toLowerCase())addTextMessage(m.text,true,mine);
   }
+  saveMessages(chatUsername,local);
+  if(currentChat.toLowerCase()===String(chatUsername).toLowerCase())scrollMessages();
 }
 function saveLocal(){profile={...profile,username:($("username").value||"").trim().replace(/^@/,""),displayName:($("displayName").value||"").trim(),bio:($("bio").value||"").trim(),email:($("email").value||"").trim(),avatar};localStorage.setItem("profile",JSON.stringify(profile));const profiles=JSON.parse(localStorage.getItem("userProfiles")||"{}");if(profile.username)profiles[profile.username.toLowerCase()]={avatar:profile.avatar||""};localStorage.setItem("userProfiles",JSON.stringify(profiles));renderHeader();$("drawerAvatar").src=avatar||defaultAvatar;$("drawerName").textContent=profile.displayName||"Мой профиль";$("drawerBio").textContent=profile.bio||"О себе не заполнено"}
 function renderHeader(){$("headName").textContent=profile.displayName||"Мой профиль";$("headSub").textContent=profile.username?"@"+profile.username:"Настрой профиль";$("pickAvatar").src=avatar||defaultAvatar}
@@ -406,10 +440,22 @@ function openFound(u){
   const profiles=JSON.parse(localStorage.getItem("userProfiles")||"{}");
   const p=u==="buzya"?{name:"Бузя",isBot:true,isAssistant:true,avatar:""}:(profiles[u]||{});
   const src=p.avatar||getStoredAvatar(u);
-  $("view").innerHTML='<section class="profile"><div id="foundAvatar" class="avatar bigavatar" style="margin:auto"></div><h2>@'+u+'</h2><div class="muted">'+(p.isAssistant?"ассистент":(p.isBot?"Бот":"Профиль пользователя"))+'</div><br><button class="btn" id="foundWrite">Написать</button></section>';
+  $("view").innerHTML='<section class="profile"><div id="foundAvatar" class="avatar bigavatar" style="margin:auto"></div><h2>@'+u+'</h2><div class="muted">'+(p.isAssistant?"ассистент":(p.isBot?"Бот":"Профиль пользователя"))+'</div><br><button class="btn" id="foundWrite">Добавить в друзья</button></section>';
   const av=$("foundAvatar");
   if(src){av.style.backgroundImage="url('"+src.replace(/'/g,"\\'")+"')";av.style.backgroundSize="cover";av.style.backgroundPosition="center"}else av.textContent=p.isBot?"ИИ":"👤";
-  $("foundWrite").onclick=()=>openChat(p.name||u,!!p.isBot,false)
+  $("foundWrite").onclick=async()=>{
+  const target=String(u||"").replace(/^@/,"").toLowerCase();
+  if(target===String(profile.username||"").toLowerCase()){openChat(p.name||u,!!p.isBot,false);return}
+  try{
+    const data=await api("/api/friends?username="+encodeURIComponent(profile.username||""));
+    const incoming=(data.incoming||[]).find(x=>x.from===target);
+    const outgoing=(data.outgoing||[]).find(x=>x.to===target);
+    if(incoming){alert("У этого пользователя уже есть заявка в друзья к тебе.");return}
+    if(outgoing){alert("Заявка уже отправлена.");return}
+    await api("/api/friends/request",{method:"POST",body:JSON.stringify({from:profile.username,to:target})});
+    alert("Заявка в друзья отправлена.");
+  }catch(e){alert("Не удалось отправить заявку: "+e.message)}
+}
 }
 function isAssistant(u){return u==="LLM7"||u==="Бузя"}
 function getTag(u,isAI=false){return isAssistant(u)?"ассистент":isAI?"бот":"чел."}
@@ -492,6 +538,8 @@ fileInput.onchange=e=>{
   reader.readAsDataURL(f);
 };
 $("send").onclick=()=>{const t=$("text").value.trim();if(t){const ai=currentChatIsAI;addTextMessage(t);sendServerMessage(currentChat,t);$("text").value="";if(ai&&!currentChatIsGroup)sendAIMessage(currentChat,t)}};
+connectChatSocket(currentChat);
+syncServerChat(currentChat);
 $("text").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("send").click()}});
 }
 function sameUser(a,b){return String(a||"").replace(/^@/,"").trim().toLowerCase()===String(b||"").replace(/^@/,"").trim().toLowerCase()}
