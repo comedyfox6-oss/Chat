@@ -38,6 +38,10 @@ export default {async fetch(request,env){
   if(url.pathname==="/api/friends"&&request.method==="GET"){
     return proxy(await registry(env).fetch("https://internal/registry/friends?username="+encodeURIComponent(cleanUser(url.searchParams.get("username")))));
   }
+  if(url.pathname==="/api/friends/respond"&&request.method==="POST"){
+    const d=await readJson(request),from=cleanUser(d.from),user=cleanUser(d.user),action=String(d.action||"");
+    return proxy(await registry(env).fetch(new Request("https://internal/registry/friend-respond",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({from,user,action})})));
+  }
 
   const chatMatch=url.pathname.match(/^\/api\/chats\/([^/]+)$/);
   if(chatMatch&&(request.method==="GET"||request.method==="POST")){
