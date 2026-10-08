@@ -81,7 +81,7 @@ export default {async fetch(request,env){
   const chatMatch=url.pathname.match(/^\\/api\\/chats\\/([^/]+)$/);
   if(chatMatch&&(request.method==="GET"||request.method==="POST"||request.method==="DELETE")){
     const other=cleanUser(decodeURIComponent(chatMatch[1])),d=request.method==="GET"?{}:await readJson(request);
-    const me=cleanUser(request.method==="GET"?url.searchParams.get("username"):d.sender||d.username);
+    const me=cleanUser((request.method==="GET"||request.method==="DELETE")?url.searchParams.get("username"):d.sender||d.username);
     if(!me||!other)return json({error:"username_required"},400);
     const id=env.CHAT_ROOM.idFromName(pairRoom(me,other));
     const target=new URL("https://internal/chat");
