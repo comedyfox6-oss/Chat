@@ -137,7 +137,7 @@ export class ChatRoom{
         const au=cleanUser(a.username),bu=cleanUser(b.username);
         return (au===q?0:au.startsWith(q)?1:2)-(bu===q?0:bu.startsWith(q)?1:2);
       });
-      return json({users:users.slice(0,50)});
+      return json({users});
     }
     if(url.pathname==="/registry/friend-request"&&request.method==="POST"){
       const d=await readJson(request),from=cleanUser(d.from),to=cleanUser(d.to);
