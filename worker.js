@@ -115,19 +115,35 @@ export class ChatRoom{
       await this.state.storage.put("user:"+u,user);
       return json({ok:true,user});
     }
+    if(url.pathname==="/registry/user"&&request.method==="GET"){
+      const u=cleanUser(url.searchParams.get("username"));
+      if(!u)return json({error:"username_required"},400);
+      const user=await this.state.storage.get("user:"+u);
+      return user?json({user}):json({error:"user_not_found"},404);
+    }
     if(url.pathname==="/registry/vapid"&&request.method==="GET"){const keys=await this.state.storage.get("vapid");return json({keys:keys||null});}
     if(url.pathname==="/registry/vapid"&&request.method==="POST"){const d=await readJson(request);await this.state.storage.put("vapid",d);return json({keys:d});}
     if(url.pathname==="/registry/push-subscribe"&&request.method==="POST"){const d=await readJson(request),u=cleanUser(d.username),s=d.subscription;if(!u||!s?.endpoint)return json({error:"invalid_subscription"},400);const id=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s.endpoint));const idb=Array.from(new Uint8Array(id)).map(x=>x.toString(16).padStart(2,"0")).join("");await this.state.storage.put("push:"+u+":"+idb,{id:idb,endpoint:s.endpoint,expirationTime:s.expirationTime||null,keys:s.keys||{}});return json({ok:true});}
     if(url.pathname==="/registry/push"&&request.method==="GET"){const u=cleanUser(url.searchParams.get("username")),list=await this.state.storage.list({prefix:"push:"+u+":"}),subscriptions=[];for(const [,s] of list)subscriptions.push(s);return json({subscriptions});}
     if(url.pathname==="/registry/push-delete"&&request.method==="POST"){const d=await readJson(request),u=cleanUser(d.username),id=String(d.id||"");if(u&&id)await this.state.storage.delete("push:"+u+":"+id);return json({ok:true});}
     if(url.pathname==="/registry/search"&&request.method==="GET"){
-      const q=cleanUser(url.searchParams.get("q")),list=await this.state.storage.list({prefix:"user:"}),users=[];
-      for(const [,u] of list)if(!q||u.username.includes(q))users.push(u);
+      const raw=String(url.searchParams.get("q")||"").replace(/^@/,"").trim().toLowerCase();
+      const q=cleanUser(raw),list=await this.state.storage.list({prefix:"user:"}),users=[];
+      for(const [,u] of list){
+        const username=cleanUser(u.username),name=String(u.name||"").trim().toLowerCase();
+        if(!q||username.includes(q)||name.includes(raw)||name.includes(q))users.push(u);
+      }
+      users.sort((a,b)=>{
+        const au=cleanUser(a.username),bu=cleanUser(b.username);
+        return (au===q?0:au.startsWith(q)?1:2)-(bu===q?0:bu.startsWith(q)?1:2);
+      });
       return json({users:users.slice(0,50)});
     }
     if(url.pathname==="/registry/friend-request"&&request.method==="POST"){
       const d=await readJson(request),from=cleanUser(d.from),to=cleanUser(d.to);
+      if(!from||!to)return json({error:"users_required"},400);
       if(from===to)return json({error:"same_user"},400);
+      if(!(await this.state.storage.get("user:"+from)))return json({error:"sender_not_found"},404);
       if(!(await this.state.storage.get("user:"+to)))return json({error:"user_not_found"},404);
       const key="friend:"+[from,to].sort().join(":");
       const existing=await this.state.storage.get(key);
