@@ -431,6 +431,7 @@ async function renderFriends(){
   buzy.onclick=()=>openChat("Бузя",true);
   buzy.innerHTML='<div class="avatar buzy-avatar" style="display:grid;place-items:center">/n</div><div><b>Бузя</b><div class="muted">@'+BUZYA_USERNAME+' · ассистент</div></div>';
   section.appendChild(buzy);
+  $("view").replaceChildren(section);
 
   try{
     const data=await api("/api/friends?username="+encodeURIComponent(profile.username||""));
