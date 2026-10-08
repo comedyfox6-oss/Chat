@@ -228,9 +228,10 @@ function connectChatSocket(chatUsername){
         const packet=JSON.parse(e.data);
         if(packet?.type==="message_deleted"){
           const id=String(packet.messageId||"");
-          const items=loadMessages(currentChat).filter(x=>x.serverId!==id);
+          const clientId=String(packet.clientId||"");
+          const items=loadMessages(currentChat).filter(x=>x.serverId!==id&&(!clientId||x.clientId!==clientId)&&(!clientId||x.id!==clientId));
           saveMessages(currentChat,items);
-          document.querySelectorAll("#messages .msg").forEach(el=>{if(el.dataset.serverId===id)el.remove()});
+          document.querySelectorAll("#messages .msg").forEach(el=>{if(el.dataset.serverId===id||(!id&&clientId&&el.dataset.localId===clientId))el.remove()});
           return;
         }
         if(packet?.type==="chat_deleted"){
