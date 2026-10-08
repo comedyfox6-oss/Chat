@@ -272,7 +272,7 @@ function deleteAI(username,name){
   localStorage.setItem("hiddenChats",JSON.stringify(hidden));
   if(currentChat&&currentChat.toLowerCase()===keyName){currentChat="";go("friends")}else renderFriends();
 }
-function renderFriends(){
+async function renderFriends(){
   removeComposer();
   const section=document.createElement("section");
   section.className="screen";
@@ -282,55 +282,38 @@ function renderFriends(){
   buzy.onclick=()=>openChat("Бузя",true);
   buzy.innerHTML='<div class="avatar buzy-avatar" style="display:grid;place-items:center">/n</div><div><b>Бузя</b><div class="muted">@'+BUZYA_USERNAME+' · ассистент</div></div>';
   section.appendChild(buzy);
-  if(aiProfiles.length){
-    const title=document.createElement("div");
-    title.className="section-title";
-    title.style.marginTop="24px";
-    title.textContent="Мои ИИ";
-    section.appendChild(title);
-  }
-  aiProfiles.forEach(x=>{
-    const row=document.createElement("div");
-    row.className="user";
-    const av=document.createElement("div");
-    av.className="avatar";
-    av.style.display="grid";
-    av.style.placeItems="center";
-    const src=x.avatar||"";
-    if(src){
-      av.style.backgroundImage="url('"+src.replace(/'/g,"\\'")+"')";
-      av.style.backgroundSize="cover";
-      av.style.backgroundPosition="center";
-    }else av.textContent="ИИ";
-    const info=document.createElement("div");
-    info.style.minWidth="0";
-    info.style.flex="1";
-    const name=document.createElement("b");
-    name.textContent=x.name;
-    const sub=document.createElement("div");
-    sub.className="muted";
-    sub.textContent=(x.username?"@"+x.username+" · ":"")+"бот";
-    info.append(name,sub);
-    info.onclick=()=>openChat(x.name,true);
-    const del=document.createElement("button");
-    del.className="btn secondary";
-    del.style.marginLeft="auto";
-    del.textContent="Удалить";
-    del.onclick=e=>{e.stopPropagation();deleteAI(x.username||"",x.name)};
-    row.append(av,info,del);
-    section.appendChild(row);
-  });
-  const people=document.createElement("div");
-  people.className="section-title";
-  people.style.marginTop="24px";
-  people.textContent="Люди";
-  section.appendChild(people);
-  const find=document.createElement("button");
-  find.className="btn secondary";
-  find.style.width="100%";
-  find.textContent="Найти друга по @username";
-  find.onclick=()=>go("search");
-  section.appendChild(find);
+
+  try{
+    const data=await api("/api/friends?username="+encodeURIComponent(profile.username||""));
+    if((data.incoming||[]).length){
+      const title=document.createElement("div");title.className="section-title";title.style.marginTop="24px";title.textContent="Заявки в друзья";section.appendChild(title);
+      for(const req of data.incoming){
+        const row=document.createElement("div");row.className="user";
+        const av=makeAvatar(req.from,false,false);
+        const info=document.createElement("div");info.style.flex="1";info.style.minWidth="0";
+        const name=document.createElement("b");name.textContent="@"+req.from;
+        const sub=document.createElement("div");sub.className="muted";sub.textContent="хочет добавить тебя в друзья";
+        info.append(name,sub);
+        const accept=document.createElement("button");accept.className="btn";accept.textContent="Принять";
+        accept.onclick=async e=>{e.stopPropagation();try{await api("/api/friends/respond",{method:"POST",body:JSON.stringify({user:profile.username,from:req.from,action:"accept"})});renderFriends()}catch(err){alert("Не удалось принять заявку: "+err.message)}};
+        const reject=document.createElement("button");reject.className="btn secondary";reject.textContent="Отклонить";
+        reject.onclick=async e=>{e.stopPropagation();try{await api("/api/friends/respond",{method:"POST",body:JSON.stringify({user:profile.username,from:req.from,action:"reject"})});renderFriends()}catch(err){alert("Не удалось отклонить заявку: "+err.message)}};
+        row.append(av,info,accept,reject);section.appendChild(row);
+      }
+    }
+    if((data.friends||[]).length){
+      const title=document.createElement("div");title.className="section-title";title.style.marginTop="24px";title.textContent="Друзья";section.appendChild(title);
+      for(const u of data.friends){
+        const row=document.createElement("div");row.className="user";row.onclick=()=>openChat(u,false,false);
+        row.append(makeAvatar(u,false,false));
+        const info=document.createElement("div");info.innerHTML='<b>@'+u+'</b><div class="muted">Друг</div>';row.appendChild(info);
+        section.appendChild(row);
+      }
+    }
+  }catch(e){console.warn("Не удалось загрузить друзей:",e)}
+
+  const people=document.createElement("div");people.className="section-title";people.style.marginTop="24px";people.textContent="Люди";section.appendChild(people);
+  const find=document.createElement("button");find.className="btn secondary";find.style.width="100%";find.textContent="Найти друга по @username";find.onclick=()=>go("search");section.appendChild(find);
   $("view").replaceChildren(section);
 }
 function regenerateCode(){profile.identityCode=makeCode();localStorage.setItem("profile",JSON.stringify(profile));const a=JSON.parse(localStorage.getItem("account")||"null");if(a){a.identityCode=profile.identityCode;localStorage.setItem("account",JSON.stringify(a))}const profiles=JSON.parse(localStorage.getItem("userProfiles")||"{}");if(profile.username)profiles[profile.username.toLowerCase()]={avatar};localStorage.setItem("userProfiles",JSON.stringify(profiles));$("identityCode").textContent=profile.identityCode}
