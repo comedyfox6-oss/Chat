@@ -57,10 +57,13 @@ export default {async fetch(request,env){
 
   if(url.pathname==="/api/users"&&request.method==="POST"){
     try{
+      if(!env.CHAT_ROOM)return json({error:"registry_binding_missing",message:"CHAT_ROOM binding is missing"},500);
       const d=await readJson(request),username=cleanUser(d.username);
       if(!username)return json({error:"username_required"},400);
-      return proxy(await registry(env).fetch(new Request("https://internal/registry/users",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...d,username})})));
-    }catch(e){return json({error:"registry_error",message:e?.message||String(e)},500)}
+      const reg=registry(env);
+      if(!reg)return json({error:"registry_unavailable",message:"Registry Durable Object is unavailable"},500);
+      return proxy(await reg.fetch(new Request("https://internal/registry/users",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...d,username})})));
+    }catch(e){return json({error:"registry_error",message:e?.stack||e?.message||String(e)},500)}
   }
   if((url.pathname==="/api/search"||url.pathname==="/api/users/all")&&request.method==="GET"){
     try{
