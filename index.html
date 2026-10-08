@@ -524,7 +524,7 @@ function addBotTextMessage(t){
   x.dataset.localId=id;
   x.innerHTML='<div class="msg-actions"><button class="delete-btn">Удалить</button></div><div class="body"></div>';
   x.querySelector(".body").textContent=t;
-  x.querySelector(".delete-btn").onclick=()=>deleteMessage(x);
+  x.querySelector(".delete-btn").onclick=e=>{e.preventDefault();e.stopPropagation();deleteMessage(x)};
   $("messages").appendChild(x);
   const items=loadMessages(currentChat);
   items.push({id,type:"text",text:t,from:"bot",mine:false,sender:currentChat||""});
@@ -579,6 +579,8 @@ function addAudioMessage(src,name,mime,restoring=false,mine=true){const empty=$(
 function addFileMessage(src,name,mime,size,restoring=false,mine=true){const empty=$("chatEmpty");if(empty)empty.remove();const x=document.createElement("div");x.className=messageClass(mine)+" file-msg";x.innerHTML='<div class="msg-actions"><button class="delete-btn">Удалить файл</button></div><a class="file-card" target="_blank" rel="noopener"><div class="file-kind">▤</div><div class="file-info"><b class="file-name"></b><span class="file-size"></span></div><span class="file-open">Открыть</span></a>';const a=x.querySelector("a");a.href=src;x.querySelector(".file-name").textContent=name||"Документ";x.querySelector(".file-size").textContent=size?formatFileSize(size):"Документ";x.querySelector(".delete-btn").onclick=()=>deleteMessage(x);$("messages").appendChild(x);if(!restoring){const items=loadMessages(currentChat);items.push({type:"file",src,name:name||"Документ",mime:mime||"application/octet-stream",from:"user",mine:true,sender:profile.username||""});saveMessages(currentChat,items)}scrollMessages()}
 function formatFileSize(bytes){if(!bytes)return"";const units=["Б","КБ","МБ","ГБ"];let n=bytes,i=0;while(n>=1024&&i<units.length-1){n/=1024;i++}return(n>=10||i===0?n.toFixed(0):n.toFixed(1))+" "+units[i]}
 function deleteMessage(el){
+  if(!el)return;
+  el.classList.remove("selected");
   const items=loadMessages(currentChat);
   const localId=el.dataset.localId||"";
   const index=localId?items.findIndex(item=>item&&item.id===localId):[...$("messages").children].filter(x=>x.classList.contains("msg")).indexOf(el);
