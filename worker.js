@@ -4,11 +4,11 @@ async function readJson(r){try{return await r.json()}catch{return {}}}
 const cleanUser=u=>String(u||"").replace(/^@/,"").trim().toLowerCase().replace(/[^a-z0-9_а-яё-]/gi,"").slice(0,32);
 const pairRoom=(a,b)=>[cleanUser(a),cleanUser(b)].sort().join("__")||"default";
 
-const b64u=(v)=>{const a=typeof v==="string"?new TextEncoder().encode(v):new Uint8Array(v);let s="";for(let n=0;n<a.length;n+=0x8000)s+=String.fromCharCode(...a.subarray(n,n+0x8000));return btoa(s).replace(/\\+/g,"-").replace(/\\//g,"_").replace(/=+$/,"")};
+const b64u=(v)=>{const a=typeof v==="string"?new TextEncoder().encode(v):new Uint8Array(v);let s="";for(let n=0;n<a.length;n+=0x8000)s+=String.fromCharCode(...a.subarray(n,n+0x8000));return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")};
 const b64uJson=(o)=>b64u(JSON.stringify(o));
 const rawPublicKey=(j)=>{const x=Uint8Array.from(atob(j.x.replace(/-/g,"+").replace(/_/g,"/")+"=="),c=>c.charCodeAt(0));const y=Uint8Array.from(atob(j.y.replace(/-/g,"+").replace(/_/g,"/")+"=="),c=>c.charCodeAt(0));const out=new Uint8Array(65);out[0]=4;out.set(x,1);out.set(y,33);return out};
 async function vapid(env){
-  const reg=registry(env),key="vapid:keys";let k=await reg.fetch(new Request("https://internal/registry/vapid",{method:"GET"}));let d=await k.json();
+  const reg=registry(env);let k=await reg.fetch(new Request("https://internal/registry/vapid",{method:"GET"}));let d=await k.json();
   if(d&&d.keys)return d.keys;
   const pair=await crypto.subtle.generateKey({name:"ECDSA",namedCurve:"P-256"},true,["sign","verify"]);
   const privateJwk=await crypto.subtle.exportKey("jwk",pair.privateKey),publicJwk=await crypto.subtle.exportKey("jwk",pair.publicKey);
