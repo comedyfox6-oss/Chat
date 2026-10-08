@@ -427,15 +427,7 @@ function loadMessages(u){return JSON.parse(localStorage.getItem(chatKey(u))||"[]
 function saveMessages(u,items){localStorage.setItem(chatKey(u),JSON.stringify(items))}
 function exitChat(){closeChatMenu();renderChats()}
 function deleteChatForMe(){localStorage.removeItem(chatKey(currentChat));const h=JSON.parse(localStorage.getItem("hiddenChats")||"[]");if(!h.includes(currentChat.toLowerCase()))h.push(currentChat.toLowerCase());localStorage.setItem("hiddenChats",JSON.stringify(h));closeChatMenu();renderChats()}
-async function deleteChatForEveryone(){
-  const chat=currentChat;
-  try{await api("/api/chats/"+encodeURIComponent(chat)+"?username="+encodeURIComponent(profile.username||"")+"&all=1",{method:"DELETE"})}
-  catch(e){console.warn("Не удалось удалить чат с сервера:",e);return}
-  localStorage.removeItem(chatKey(chat));
-  localStorage.setItem("deleteForEveryone:"+chat.toLowerCase(),Date.now().toString());
-  const h=JSON.parse(localStorage.getItem("hiddenChats")||"[]");if(!h.includes(chat.toLowerCase()))h.push(chat.toLowerCase());
-  localStorage.setItem("hiddenChats",JSON.stringify(h));closeChatMenu();renderChats()
-}
+
 function toggleChatMenu(){$("chatMenu").classList.toggle("open")}
 function closeChatMenu(){const m=$("chatMenu");if(m)m.classList.remove("open")}
 function renderSearch(){$("view").innerHTML='<section class="screen"><div class="search"><input id="q" placeholder="Найти по юзу…"><button class="btn" onclick="searchUsers()">Найти</button></div><div id="results" class="muted">Введи @username.</div></section>';setTimeout(()=>$("q").focus(),0)}
