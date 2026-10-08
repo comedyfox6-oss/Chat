@@ -78,15 +78,20 @@ export default {async fetch(request,env){
     return proxy(await registry(env).fetch(new Request("https://internal/registry/friend-respond",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({from,user,action})})));
   }
 
-  const chatMatch=url.pathname.match(/^\/api\/chats\/([^/]+)$/);
-  if(chatMatch&&(request.method==="GET"||request.method==="POST")){
-    const other=cleanUser(decodeURIComponent(chatMatch[1])),d=request.method==="POST"?await readJson(request):{};
-    const me=cleanUser(request.method==="POST"?d.sender:url.searchParams.get("username"));
+  const chatMatch=url.pathname.match(/^\\/api\\/chats\\/([^/]+)$/);
+  if(chatMatch&&(request.method==="GET"||request.method==="POST"||request.method==="DELETE")){
+    const other=cleanUser(decodeURIComponent(chatMatch[1])),d=request.method==="GET"?{}:await readJson(request);
+    const me=cleanUser(request.method==="GET"?url.searchParams.get("username"):d.sender||d.username);
     if(!me||!other)return json({error:"username_required"},400);
     const id=env.CHAT_ROOM.idFromName(pairRoom(me,other));
     const target=new URL("https://internal/chat");
     if(request.method==="GET")target.searchParams.set("username",me);
-    const init=request.method==="POST"?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:me,...d})}:{method:"GET"};
+    else {
+      target.searchParams.set("username",me);
+      if(request.method==="DELETE"&&url.searchParams.get("messageId"))target.searchParams.set("messageId",url.searchParams.get("messageId"));
+      if(request.method==="DELETE"&&url.searchParams.get("all")==="1")target.searchParams.set("all","1");
+    }
+    const init=request.method==="POST"?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:me,...d})}:{method:request.method};
     const chatResponse=await env.CHAT_ROOM.get(id).fetch(new Request(target.toString(),init));
     if(request.method==="POST"&&chatResponse.ok)pushToUser(env,other).catch(()=>{});
     return proxy(chatResponse);
@@ -158,6 +163,24 @@ export class ChatRoom{
       const close=()=>this.clients.delete(server);
       server.addEventListener("close",close);server.addEventListener("error",close);
       return new Response(null,{status:101,webSocket:client});
+    }
+    if(request.method==="DELETE"){
+      const messageId=String(url.searchParams.get("messageId")||"").trim();
+      const all=url.searchParams.get("all")==="1";
+      const data=(await this.state.storage.get("messages"))||[];
+      if(all){
+        await this.state.storage.delete("messages");
+        const payload=JSON.stringify({type:"chat_deleted"});
+        for(const peer of this.clients)try{peer.send(payload)}catch{}
+        return json({ok:true,deleted:"chat"});
+      }
+      if(!messageId)return json({error:"message_id_required"},400);
+      const next=data.filter(m=>m.id!==messageId);
+      if(next.length===data.length)return json({error:"message_not_found"},404);
+      await this.state.storage.put("messages",next);
+      const payload=JSON.stringify({type:"message_deleted",messageId});
+      for(const peer of this.clients)try{peer.send(payload)}catch{}
+      return json({ok:true,deleted:messageId});
     }
     if(request.method==="GET"){
       return json({messages:(await this.state.storage.get("messages"))||[]});
