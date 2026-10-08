@@ -1,4 +1,4 @@
-const CORS={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"Content-Type, Authorization","Access-Control-Allow-Methods":"GET, POST, OPTIONS"};
+const CORS={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"Content-Type, Authorization","Access-Control-Allow-Methods":"GET, POST, DELETE, OPTIONS"};
 const json=(d,s=200)=>new Response(JSON.stringify(d),{status:s,headers:{"Content-Type":"application/json; charset=utf-8",...CORS}});
 async function readJson(r){try{return await r.json()}catch{return {}}}
 const cleanUser=u=>String(u||"").replace(/^@/,"").trim().toLowerCase().replace(/[^a-z0-9_а-яё-]/gi,"").slice(0,32);
