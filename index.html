@@ -210,6 +210,19 @@ function connectChatSocket(chatUsername){
     chatSocket.onmessage=e=>{
       try{
         const packet=JSON.parse(e.data);
+        if(packet?.type==="message_deleted"){
+          const id=String(packet.messageId||"");
+          const items=loadMessages(currentChat).filter(x=>x.serverId!==id);
+          saveMessages(currentChat,items);
+          document.querySelectorAll("#messages .msg").forEach(el=>{if(el.dataset.serverId===id)el.remove()});
+          return;
+        }
+        if(packet?.type==="chat_deleted"){
+          localStorage.removeItem(chatKey(currentChat));
+          const empty=$("chatEmpty");if(empty)empty.style.display="block";
+          document.querySelectorAll("#messages .msg").forEach(el=>el.remove());
+          return;
+        }
         const m=packet&&packet.message;
         if(!m||m.sender===me||currentChat.toLowerCase()!==other)return;
         addTextMessage(m.text,false,false);
@@ -229,7 +242,7 @@ async function syncServerChat(chatUsername){
     if(known.has(m.id))continue;
     const mine=m.sender===String(profile.username||"").toLowerCase();
     local.push({type:"text",text:m.text,from:"user",mine,sender:m.sender,serverId:m.id,createdAt:m.createdAt});
-    if(currentChat.toLowerCase()===String(chatUsername).toLowerCase())addTextMessage(m.text,true,mine);
+    if(currentChat.toLowerCase()===String(chatUsername).toLowerCase())addTextMessage(m.text,true,mine,m.id);
   }
   saveMessages(chatUsername,local);
   if(currentChat.toLowerCase()===String(chatUsername).toLowerCase())scrollMessages();
@@ -388,7 +401,15 @@ function loadMessages(u){return JSON.parse(localStorage.getItem(chatKey(u))||"[]
 function saveMessages(u,items){localStorage.setItem(chatKey(u),JSON.stringify(items))}
 function exitChat(){closeChatMenu();renderChats()}
 function deleteChatForMe(){localStorage.removeItem(chatKey(currentChat));const h=JSON.parse(localStorage.getItem("hiddenChats")||"[]");if(!h.includes(currentChat.toLowerCase()))h.push(currentChat.toLowerCase());localStorage.setItem("hiddenChats",JSON.stringify(h));closeChatMenu();renderChats()}
-function deleteChatForEveryone(){localStorage.removeItem(chatKey(currentChat));localStorage.setItem("deleteForEveryone:"+currentChat.toLowerCase(),Date.now().toString());const h=JSON.parse(localStorage.getItem("hiddenChats")||"[]");if(!h.includes(currentChat.toLowerCase()))h.push(currentChat.toLowerCase());localStorage.setItem("hiddenChats",JSON.stringify(h));closeChatMenu();renderChats()}
+async function deleteChatForEveryone(){
+  const chat=currentChat;
+  try{await api("/api/chats/"+encodeURIComponent(chat)+"?username="+encodeURIComponent(profile.username||"")+"&all=1",{method:"DELETE"})}
+  catch(e){console.warn("Не удалось удалить чат с сервера:",e);return}
+  localStorage.removeItem(chatKey(chat));
+  localStorage.setItem("deleteForEveryone:"+chat.toLowerCase(),Date.now().toString());
+  const h=JSON.parse(localStorage.getItem("hiddenChats")||"[]");if(!h.includes(chat.toLowerCase()))h.push(chat.toLowerCase());
+  localStorage.setItem("hiddenChats",JSON.stringify(h));closeChatMenu();renderChats()
+}
 function toggleChatMenu(){$("chatMenu").classList.toggle("open")}
 function closeChatMenu(){const m=$("chatMenu");if(m)m.classList.remove("open")}
 function renderSearch(){$("view").innerHTML='<section class="screen"><div class="search"><input id="q" placeholder="Найти по юзу…"><button class="btn" onclick="searchUsers()">Найти</button></div><div id="results" class="muted">Введи @username.</div></section>';setTimeout(()=>$("q").focus(),0)}
@@ -546,12 +567,25 @@ $("text").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.prev
 }
 function sameUser(a,b){return String(a||"").replace(/^@/,"").trim().toLowerCase()===String(b||"").replace(/^@/,"").trim().toLowerCase()}
 function messageClass(mine){return mine?"msg me":"msg them"}
-function addTextMessage(t,restoring=false,mine=true){const empty=$("chatEmpty");if(empty)empty.remove();const x=document.createElement("div");x.className=messageClass(mine);x.innerHTML='<div class="msg-actions"><button class="delete-btn">Удалить</button></div><div class="body" style="display:block!important;color:#4b4568!important;-webkit-text-fill-color:#4b4568!important;"></div>';x.querySelector(".body").textContent=t;x.querySelector(".delete-btn").onclick=()=>deleteMessage(x);$("messages").appendChild(x);if(!restoring){const items=loadMessages(currentChat);items.push({type:"text",text:t,from:"user",mine:true,sender:profile.username||""});saveMessages(currentChat,items)}scrollMessages()}
+function addTextMessage(t,restoring=false,mine=true,serverId=""){const empty=$("chatEmpty");if(empty)empty.remove();const x=document.createElement("div");x.className=messageClass(mine);if(serverId)x.dataset.serverId=serverId;x.innerHTML='<div class="msg-actions"><button class="delete-btn">Удалить у всех</button></div><div class="body" style="display:block!important;color:#4b4568!important;-webkit-text-fill-color:#4b4568!important;"></div>';x.querySelector(".body").textContent=t;x.querySelector(".delete-btn").onclick=()=>deleteMessage(x);$("messages").appendChild(x);if(!restoring){const items=loadMessages(currentChat);items.push({type:"text",text:t,from:"user",mine:true,sender:profile.username||""});saveMessages(currentChat,items)}scrollMessages()}
 function addPhotoMessage(src,restoring=false,mine=true){const empty=$("chatEmpty");if(empty)empty.remove();const x=document.createElement("div");x.className=messageClass(mine);x.innerHTML='<div class="msg-actions"><button class="delete-btn">Удалить фото</button></div><img alt="Фото сообщения">';x.querySelector("img").src=src;x.querySelector(".delete-btn").onclick=()=>deleteMessage(x);$("messages").appendChild(x);if(!restoring){const items=loadMessages(currentChat);items.push({type:"photo",src,from:"user",mine:true,sender:profile.username||""});saveMessages(currentChat,items)}scrollMessages()}
 function addAudioMessage(src,name,mime,restoring=false,mine=true){const empty=$("chatEmpty");if(empty)empty.remove();const x=document.createElement("div");x.className=messageClass(mine)+" file-msg";x.innerHTML='<div class="msg-actions"><button class="delete-btn">Удалить файл</button></div><div class="file-card"><div class="file-kind">♫</div><div class="file-info"><b class="file-name"></b><audio controls preload="metadata"></audio></div></div>';x.querySelector(".file-name").textContent=name||"Музыка";x.querySelector("audio").src=src;x.querySelector(".delete-btn").onclick=()=>deleteMessage(x);$("messages").appendChild(x);if(!restoring){const items=loadMessages(currentChat);items.push({type:"audio",src,name:name||"Музыка",mime:mime||"audio/*",from:"user",mine:true,sender:profile.username||""});saveMessages(currentChat,items)}scrollMessages()}
 function addFileMessage(src,name,mime,size,restoring=false,mine=true){const empty=$("chatEmpty");if(empty)empty.remove();const x=document.createElement("div");x.className=messageClass(mine)+" file-msg";x.innerHTML='<div class="msg-actions"><button class="delete-btn">Удалить файл</button></div><a class="file-card" target="_blank" rel="noopener"><div class="file-kind">▤</div><div class="file-info"><b class="file-name"></b><span class="file-size"></span></div><span class="file-open">Открыть</span></a>';const a=x.querySelector("a");a.href=src;x.querySelector(".file-name").textContent=name||"Документ";x.querySelector(".file-size").textContent=size?formatFileSize(size):"Документ";x.querySelector(".delete-btn").onclick=()=>deleteMessage(x);$("messages").appendChild(x);if(!restoring){const items=loadMessages(currentChat);items.push({type:"file",src,name:name||"Документ",mime:mime||"application/octet-stream",from:"user",mine:true,sender:profile.username||""});saveMessages(currentChat,items)}scrollMessages()}
 function formatFileSize(bytes){if(!bytes)return"";const units=["Б","КБ","МБ","ГБ"];let n=bytes,i=0;while(n>=1024&&i<units.length-1){n/=1024;i++}return(n>=10||i===0?n.toFixed(0):n.toFixed(1))+" "+units[i]}
-function deleteMessage(el){const nodes=[...$("messages").children].filter(x=>x.classList.contains("msg"));const index=nodes.indexOf(el);el.remove();if(index>=0){const items=loadMessages(currentChat);items.splice(index,1);saveMessages(currentChat,items)}if(!$("messages").querySelector(".msg")){const empty=$("chatEmpty");if(empty)empty.style.display="block"}}
+function deleteMessage(el){
+  const nodes=[...$("messages").children].filter(x=>x.classList.contains("msg"));
+  const index=nodes.indexOf(el);
+  const items=loadMessages(currentChat);
+  const item=index>=0?items[index]:null;
+  const serverId=el.dataset.serverId||item?.serverId||"";
+  const finish=()=>{
+    el.remove();
+    if(index>=0){items.splice(index,1);saveMessages(currentChat,items)}
+    if(!$("messages").querySelector(".msg")){const empty=$("chatEmpty");if(empty)empty.style.display="block"}
+  };
+  if(!serverId){finish();return}
+  api("/api/chats/"+encodeURIComponent(currentChat)+"?username="+encodeURIComponent(profile.username||"")+"&messageId="+encodeURIComponent(serverId),{method:"DELETE"}).then(finish).catch(e=>console.warn("Не удалось удалить сообщение с сервера:",e));
+}
 function scrollMessages(){const m=$("messages");m.scrollTop=m.scrollHeight}
 document.addEventListener("click",e=>{document.querySelectorAll(".msg.selected").forEach(m=>{if(!m.contains(e.target))m.classList.remove("selected")})});
 document.addEventListener("contextmenu",e=>{const m=e.target.closest&&e.target.closest(".msg");if(!m)return;e.preventDefault();m.classList.toggle("selected")});
