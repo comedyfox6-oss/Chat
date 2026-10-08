@@ -47,7 +47,7 @@ async function handleAI(request,env){
   if(!response.ok)return json({error:"groq_error",status:response.status,details:result},response.status);
   return json({ok:true,model,response:result});
 }
-async function registry(env){return env.CHAT_ROOM.get(env.CHAT_ROOM.idFromName("__registry__"))}
+function registry(env){return env.CHAT_ROOM.get(env.CHAT_ROOM.idFromName("__registry__"))}
 async function proxy(r){return new Response(r.body,{status:r.status,headers:{...Object.fromEntries(r.headers),...CORS}})}
 
 export default {async fetch(request,env){
