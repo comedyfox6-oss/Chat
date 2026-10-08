@@ -166,6 +166,7 @@ export class ChatRoom{
     }
     if(request.method==="DELETE"){
       const messageId=String(url.searchParams.get("messageId")||"").trim();
+      const clientId=String(url.searchParams.get("clientId")||"").trim();
       const all=url.searchParams.get("all")==="1";
       const data=(await this.state.storage.get("messages"))||[];
       if(all){
@@ -174,13 +175,14 @@ export class ChatRoom{
         for(const peer of this.clients)try{peer.send(payload)}catch{}
         return json({ok:true,deleted:"chat"});
       }
-      if(!messageId)return json({error:"message_id_required"},400);
-      const next=data.filter(m=>m.id!==messageId);
-      if(next.length===data.length)return json({error:"message_not_found"},404);
+      if(!messageId&&!clientId)return json({error:"message_id_required"},400);
+      const target=data.find(m=>(messageId&&m.id===messageId)||(clientId&&m.clientId===clientId));
+      if(!target)return json({ok:true,deleted:messageId||clientId,alreadyGone:true});
+      const next=data.filter(m=>m.id!==target.id);
       await this.state.storage.put("messages",next);
-      const payload=JSON.stringify({type:"message_deleted",messageId});
+      const payload=JSON.stringify({type:"message_deleted",messageId:target.id,clientId:target.clientId||""});
       for(const peer of this.clients)try{peer.send(payload)}catch{}
-      return json({ok:true,deleted:messageId});
+      return json({ok:true,deleted:target.id});
     }
     if(request.method==="GET"){
       return json({messages:(await this.state.storage.get("messages"))||[]});
@@ -188,7 +190,7 @@ export class ChatRoom{
     if(request.method==="POST"){
       const d=await readJson(request),sender=cleanUser(d.sender),text=String(d.text||"").trim();
       if(!sender||!text)return json({error:"message_required"},400);
-      const message={id:crypto.randomUUID(),sender,text,createdAt:Date.now()};
+      const message={id:crypto.randomUUID(),clientId:String(d.clientId||"").trim().slice(0,120),sender,text,createdAt:Date.now()};
       const data=(await this.state.storage.get("messages"))||[];data.push(message);if(data.length>500)data.splice(0,data.length-500);
       await this.state.storage.put("messages",data);
       const payload=JSON.stringify({type:"message",message});
