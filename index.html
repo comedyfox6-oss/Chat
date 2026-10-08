@@ -280,11 +280,102 @@ function closeProfile(){$("drawer").classList.remove("open")}
 function saveProfile(){saveLocal();syncCurrentUser();closeProfile();go("chats")}function showRegister(){$("loginForm").style.display="none";$("registerForm").style.display="block"}
 function showLogin(){$("loginForm").style.display="block";$("registerForm").style.display="none"}
 function makeCode(){return Array.from(crypto.getRandomValues(new Uint8Array(12))).map(x=>x.toString(16).padStart(2,"0")).join("").toUpperCase().match(/.{1,4}/g).join("-")}
-function logout(){localStorage.removeItem("sessionActive");localStorage.setItem("loggedOut","1");closeMore();closeProfile();$("auth").style.display="flex";showLogin();$("authMsg").textContent="Сессия завершена на этом устройстве."}function finishLogin(a){if(!a)return false;try{profile=JSON.parse(localStorage.getItem("profile")||"{}")}catch(e){profile={}}profile.username=a.username||profile.username||"";profile.email=a.email||profile.email||"";profile.identityCode=a.identityCode||profile.identityCode||"";if(!profile.avatar)profile.avatar="";try{localStorage.setItem("profile",JSON.stringify(profile));localStorage.setItem("account",JSON.stringify(a));localStorage.setItem("sessionActive","1");localStorage.removeItem("loggedOut")}catch(e){$("authMsg").textContent="Не удалось сохранить вход на устройстве.";return false}$("auth").style.display="none";$("authMsg").textContent="";try{renderHeader();renderChats()}catch(e){console.error("Login UI error:",e);$("auth").style.display="none";$("view").innerHTML="<section class=\"screen\"><div class=\"empty\"><b>Вход выполнен</b>Интерфейс загрузился с ошибкой. Обнови страницу.</div></section>"}try{syncCurrentUser()}catch(e){}setTimeout(()=>window.setupPush&&window.setupPush(),500);return true}
-function readAccount(){try{return JSON.parse(localStorage.getItem("account")||"null")}catch(e){return null}}
-function registerAccount(){const u=($("regUser").value||"").trim().replace(/^@/,"").toLowerCase(),n=($("regName").value||"").trim(),e=($("regEmail").value||"").trim().toLowerCase(),p=$("regPass").value||"";if(!u||!e||!p){$("authMsg").textContent="Заполни юзер, почту и пароль.";return}const code=makeCode();profile={username:u,displayName:n,email:e,avatar:"",bio:"",identityCode:code};localStorage.setItem("profile",JSON.stringify(profile));localStorage.setItem("account",JSON.stringify({username:u,email:e,password:p,identityCode:code}));const profiles=JSON.parse(localStorage.getItem("userProfiles")||"{}");profiles[u]={avatar:""};localStorage.setItem("userProfiles",JSON.stringify(profiles));finishLogin(JSON.parse(localStorage.getItem("account")))}
-function login(){const id=($("loginId").value||"").trim().replace(/^@/,"").toLowerCase(),p=$("loginPass").value||"",a=readAccount();if(!a){$("authMsg").textContent="Аккаунт на этом устройстве не найден. Создай аккаунт.";return}const username=String(a.username||"").toLowerCase(),email=String(a.email||"").toLowerCase();if(!id||!p||p!==String(a.password||"")||(id!==username&&id!==email)){$("authMsg").textContent="Неверный юзер/почта или пароль.";return}finishLogin(a)}
-function loginByCode(){const code=($("loginCode").value||"").trim().toUpperCase(),a=readAccount();if(!a){$("authMsg").textContent="Аккаунт на этом устройстве не найден.";return}if(!code||code!==String(a.identityCode||"").toUpperCase()){$("authMsg").textContent="Неверный код.";return}finishLogin(a)}
+function logout(){localStorage.removeItem("sessionActive");localStorage.setItem("loggedOut","1");closeMore();closeProfile();$("auth").style.display="flex";showLogin();$("authMsg").textContent="Сессия завершена на этом устройстве."}function finishLogin(a){
+  if(!a)return false;
+  try{profile=JSON.parse(localStorage.getItem("profile")||"{}")||{}}catch(e){profile={}}
+  profile.username=a.username||profile.username||"";
+  profile.email=a.email||profile.email||"";
+  profile.identityCode=a.identityCode||profile.identityCode||"";
+  profile.displayName=profile.displayName||a.username||"";
+  if(!profile.avatar)profile.avatar="";
+  avatar=profile.avatar||"";
+  try{
+    localStorage.setItem("profile",JSON.stringify(profile));
+    localStorage.setItem("account",JSON.stringify(a));
+    localStorage.setItem("sessionActive","1");
+    localStorage.removeItem("loggedOut");
+  }catch(e){
+    console.error("Login storage error:",e);
+    $("authMsg").textContent="Не удалось сохранить вход на устройстве.";
+    return false;
+  }
+  $("auth").style.display="none";
+  $("authMsg").textContent="";
+  try{
+    renderHeader();
+    renderChats();
+  }catch(e){
+    console.error("Login UI error:",e);
+    $("view").innerHTML='<section class="screen"><div class="empty"><b>Вход выполнен</b>Интерфейс загрузился с ошибкой. Обнови страницу.</div></section>';
+  }
+  Promise.resolve().then(()=>syncCurrentUser()).catch(e=>console.warn("Profile sync error:",e));
+  setTimeout(()=>window.setupPush&&window.setupPush(),500);
+  return true;
+}
+function readAccount(){
+  try{
+    const raw=localStorage.getItem("account");
+    return raw?JSON.parse(raw):null;
+  }catch(e){return null}
+}
+function registerAccount(){
+  try{
+    const u=($("regUser").value||"").trim().replace(/^@/,"").toLowerCase();
+    const n=($("regName").value||"").trim();
+    const e=($("regEmail").value||"").trim().toLowerCase();
+    const p=$("regPass").value||"";
+    if(!u||!e||!p){$("authMsg").textContent="Заполни юзер, почту и пароль.";return}
+    const code=makeCode();
+    const account={username:u,email:e,password:p,identityCode:code};
+    profile={username:u,displayName:n,email:e,avatar:"",bio:"",identityCode:code};
+    localStorage.setItem("profile",JSON.stringify(profile));
+    const profiles=JSON.parse(localStorage.getItem("userProfiles")||"{}");
+    profiles[u]={avatar:""};
+    localStorage.setItem("userProfiles",JSON.stringify(profiles));
+    finishLogin(account);
+  }catch(e){
+    console.error("Register error:",e);
+    $("authMsg").textContent="Не удалось создать аккаунт.";
+  }
+}
+function login(){
+  try{
+    const id=($("loginId").value||"").trim().replace(/^@/,"").toLowerCase();
+    const p=$("loginPass").value||"";
+    const a=readAccount();
+    if(!a){$("authMsg").textContent="Аккаунт на этом устройстве не найден. Создай аккаунт.";return false}
+    const username=String(a.username||"").toLowerCase();
+    const email=String(a.email||"").toLowerCase();
+    if(!id||!p||p!==String(a.password||"")||(id!==username&&id!==email)){
+      $("authMsg").textContent="Неверный юзер/почта или пароль.";
+      return false;
+    }
+    return finishLogin(a);
+  }catch(e){
+    console.error("Login error:",e);
+    $("authMsg").textContent="Ошибка входа. Попробуй ещё раз.";
+    return false;
+  }
+}
+function loginByCode(){
+  try{
+    const code=($("loginCode").value||"").trim().toUpperCase();
+    let a=readAccount();
+    if(!a){
+      try{
+        const p=JSON.parse(localStorage.getItem("profile")||"{}");
+        if(p.username&&p.identityCode)a={username:p.username,email:p.email||"",identityCode:p.identityCode,password:""};
+      }catch(e){}
+    }
+    if(!a){$("authMsg").textContent="Аккаунт на этом устройстве не найден.";return false}
+    if(!code||code!==String(a.identityCode||"").toUpperCase()){$("authMsg").textContent="Неверный код.";return false}
+    return finishLogin(a);
+  }catch(e){
+    console.error("Code login error:",e);
+    $("authMsg").textContent="Ошибка входа по коду. Попробуй ещё раз.";
+    return false;
+  }
+}
 function togglePlus(){const m=$("plusMenu"),b=document.querySelector('.bottom .nav[onclick="togglePlus()"]'),a=document.querySelector(".app");if(m.style.display==="block"){m.style.display="none";return}closeProfile();closeChatMenu();const r=b.getBoundingClientRect(),ar=a.getBoundingClientRect(),w=190;let left=r.left-ar.left+r.width/2-w/2;left=Math.max(8,Math.min(left,ar.width-w-8));m.style.left=left+"px";m.style.right="auto";m.style.bottom=(ar.bottom-r.top+9)+"px";m.style.display="block"}function closePlus(){$("plusMenu").style.display="none"}
 async function createAI(){
   closePlus();
