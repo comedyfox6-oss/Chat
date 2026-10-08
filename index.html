@@ -158,9 +158,9 @@ async function api(path, options={}) {
 async function syncCurrentUser(){
   const u=String(profile.username||"").replace(/^@/,"").trim().toLowerCase();
   const name=String(profile.displayName||u||"Пользователь").trim();
-  if(!u)return;
+  if(!u)return false;
   try{
-    await api("/api/users",{
+    const data=await api("/api/users",{
       method:"POST",
       body:JSON.stringify({
         username:u,
@@ -171,11 +171,25 @@ async function syncCurrentUser(){
         personality:""
       })
     });
+    return !!(data&&data.user);
   }catch(e){
-    if(e.message!=="username_taken") console.warn("Не удалось синхронизировать профиль:",e);
+    if(e.message==="username_taken")return true;
+    console.warn("Не удалось синхронизировать профиль:",e);
+    return false;
   }
 }
 
+async function ensureServerUser(username){
+  const u=String(username||"").replace(/^@/,"").trim().toLowerCase();
+  if(!u)return false;
+  try{
+    const q=await api("/api/search?q="+encodeURIComponent(u));
+    return Array.isArray(q.users)&&q.users.some(x=>String(x.username||"").toLowerCase()===u);
+  }catch(e){
+    console.warn("Не удалось проверить пользователя:",e);
+    return false;
+  }
+}
 async function sendServerMessage(chatUsername,text,localId=""){
   if(currentChatIsAI||currentChatIsGroup)return;
   const sender=String(profile.username||"").replace(/^@/,"").trim().toLowerCase();
