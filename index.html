@@ -175,7 +175,7 @@ async function syncCurrentUser(){
   }
 }
 
-async function sendServerMessage(chatUsername,text){
+async function sendServerMessage(chatUsername,text,localId=""){
   if(currentChatIsAI||currentChatIsGroup)return;
   const sender=String(profile.username||"").replace(/^@/,"").trim().toLowerCase();
   const chat=String(chatUsername||"").replace(/^@/,"").trim().toLowerCase();
@@ -183,8 +183,19 @@ async function sendServerMessage(chatUsername,text){
   try{
     const data=await api("/api/chats/"+encodeURIComponent(chat),{method:"POST",body:JSON.stringify({sender,text})});
     if(data&&data.message){
-      const items=loadMessages(chatUsername);const last=items[items.length-1];
-      if(last&&last.text===text){last.serverId=data.message.id;last.sender=sender;last.mine=true;last.createdAt=data.message.createdAt;saveMessages(chatUsername,items)}
+      const items=loadMessages(chatUsername);
+      const index=localId?items.findIndex(x=>x&&x.id===localId):-1;
+      if(index>=0){
+        items[index].serverId=data.message.id;
+        items[index].sender=sender;
+        items[index].mine=true;
+        items[index].createdAt=data.message.createdAt;
+        saveMessages(chatUsername,items);
+        const el=document.querySelector('#messages .msg[data-local-id="'+CSS.escape(localId)+'"]');
+        if(el)el.dataset.serverId=data.message.id;
+      }else{
+        await api("/api/chats/"+encodeURIComponent(chat)+"?username="+encodeURIComponent(sender)+"&messageId="+encodeURIComponent(data.message.id),{method:"DELETE"});
+      }
     }
   }catch(e){console.warn("Не удалось сохранить сообщение на сервере:",e)}
 }
@@ -577,7 +588,7 @@ fileInput.onchange=e=>{
   reader.onload=()=>{addFileMessage(reader.result,f.name,f.type,f.size);fileInput.value=""};
   reader.readAsDataURL(f);
 };
-$("send").onclick=()=>{const t=$("text").value.trim();if(t){const ai=currentChatIsAI;addTextMessage(t);sendServerMessage(currentChat,t);$("text").value="";if(ai&&!currentChatIsGroup)sendAIMessage(currentChat,t)}};
+$("send").onclick=()=>{const t=$("text").value.trim();if(t){const ai=currentChatIsAI;const localId=newLocalMessageId();addTextMessage(t,false,true,"",localId);sendServerMessage(currentChat,t,localId);$("text").value="";if(ai&&!currentChatIsGroup)sendAIMessage(currentChat,t)}};
 connectChatSocket(currentChat);
 syncServerChat(currentChat);
 $("text").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("send").click()}});
@@ -602,7 +613,8 @@ function deleteMessage(el){
     if(index>=0){items.splice(index,1);saveMessages(currentChat,items)}
     if(!$("messages").querySelector(".msg")){const empty=$("chatEmpty");if(empty)empty.style.display="block"}
   };
-  if(currentChatIsAI||currentChatIsGroup||!serverId){finish();return}
+  if(currentChatIsAI||currentChatIsGroup){finish();return}
+  if(!serverId){finish();return}
   api("/api/chats/"+encodeURIComponent(currentChat)+"?username="+encodeURIComponent(profile.username||"")+"&messageId="+encodeURIComponent(serverId),{method:"DELETE"}).then(finish).catch(e=>console.warn("Не удалось удалить сообщение с сервера:",e));
 }
 function scrollMessages(){const m=$("messages");m.scrollTop=m.scrollHeight}
