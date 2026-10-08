@@ -89,7 +89,6 @@ export default {async fetch(request,env){
     else {
       target.searchParams.set("username",me);
       if(request.method==="DELETE"&&url.searchParams.get("messageId"))target.searchParams.set("messageId",url.searchParams.get("messageId"));
-      if(request.method==="DELETE"&&url.searchParams.get("all")==="1")target.searchParams.set("all","1");
     }
     const init=request.method==="POST"?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:me,...d})}:{method:request.method};
     const chatResponse=await env.CHAT_ROOM.get(id).fetch(new Request(target.toString(),init));
@@ -167,14 +166,7 @@ export class ChatRoom{
     if(request.method==="DELETE"){
       const messageId=String(url.searchParams.get("messageId")||"").trim();
       const clientId=String(url.searchParams.get("clientId")||"").trim();
-      const all=url.searchParams.get("all")==="1";
       const data=(await this.state.storage.get("messages"))||[];
-      if(all){
-        await this.state.storage.delete("messages");
-        const payload=JSON.stringify({type:"chat_deleted"});
-        for(const peer of this.clients)try{peer.send(payload)}catch{}
-        return json({ok:true,deleted:"chat"});
-      }
       if(!messageId&&!clientId)return json({error:"message_id_required"},400);
       const target=data.find(m=>(messageId&&m.id===messageId)||(clientId&&m.clientId===clientId));
       if(!target)return json({ok:true,deleted:messageId||clientId,alreadyGone:true});
