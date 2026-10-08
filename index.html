@@ -431,40 +431,74 @@ async function renderFriends(){
   buzy.onclick=()=>openChat("Бузя",true);
   buzy.innerHTML='<div class="avatar buzy-avatar" style="display:grid;place-items:center">/n</div><div><b>Бузя</b><div class="muted">@'+BUZYA_USERNAME+' · ассистент</div></div>';
   section.appendChild(buzy);
+
+  const people=document.createElement("div");
+  people.className="section-title";
+  people.style.marginTop="24px";
+  people.textContent="Люди";
+  section.appendChild(people);
+  const find=document.createElement("button");
+  find.className="btn secondary";
+  find.style.width="100%";
+  find.textContent="Найти друга по @username";
+  find.onclick=()=>go("search");
+  section.appendChild(find);
+
   $("view").replaceChildren(section);
 
   try{
     const data=await api("/api/friends?username="+encodeURIComponent(profile.username||""));
     if((data.incoming||[]).length){
-      const title=document.createElement("div");title.className="section-title";title.style.marginTop="24px";title.textContent="Заявки в друзья";section.appendChild(title);
+      const title=document.createElement("div");
+      title.className="section-title";
+      title.style.marginTop="24px";
+      title.textContent="Заявки в друзья";
+      section.insertBefore(title,people);
       for(const req of data.incoming){
-        const row=document.createElement("div");row.className="user";
+        const row=document.createElement("div");
+        row.className="user";
         const av=makeAvatar(req.from,false,false);
-        const info=document.createElement("div");info.style.flex="1";info.style.minWidth="0";
-        const name=document.createElement("b");name.textContent="@"+req.from;
-        const sub=document.createElement("div");sub.className="muted";sub.textContent="хочет добавить тебя в друзья";
+        const info=document.createElement("div");
+        info.style.flex="1";
+        info.style.minWidth="0";
+        const name=document.createElement("b");
+        name.textContent="@"+req.from;
+        const sub=document.createElement("div");
+        sub.className="muted";
+        sub.textContent="хочет добавить тебя в друзья";
         info.append(name,sub);
-        const accept=document.createElement("button");accept.className="btn";accept.textContent="Принять";
+        const accept=document.createElement("button");
+        accept.className="btn";
+        accept.textContent="Принять";
         accept.onclick=async e=>{e.stopPropagation();try{await api("/api/friends/respond",{method:"POST",body:JSON.stringify({user:profile.username,from:req.from,action:"accept"})});renderFriends()}catch(err){alert("Не удалось принять заявку: "+err.message)}};
-        const reject=document.createElement("button");reject.className="btn secondary";reject.textContent="Отклонить";
+        const reject=document.createElement("button");
+        reject.className="btn secondary";
+        reject.textContent="Отклонить";
         reject.onclick=async e=>{e.stopPropagation();try{await api("/api/friends/respond",{method:"POST",body:JSON.stringify({user:profile.username,from:req.from,action:"reject"})});renderFriends()}catch(err){alert("Не удалось отклонить заявку: "+err.message)}};
-        row.append(av,info,accept,reject);section.appendChild(row);
+        row.append(av,info,accept,reject);
+        section.insertBefore(row,people);
       }
     }
     if((data.friends||[]).length){
-      const title=document.createElement("div");title.className="section-title";title.style.marginTop="24px";title.textContent="Друзья";section.appendChild(title);
+      const title=document.createElement("div");
+      title.className="section-title";
+      title.style.marginTop="24px";
+      title.textContent="Друзья";
+      section.insertBefore(title,people);
       for(const u of data.friends){
-        const row=document.createElement("div");row.className="user";row.onclick=()=>openChat(u,false,false);
+        const row=document.createElement("div");
+        row.className="user";
+        row.onclick=()=>openChat(u,false,false);
         row.append(makeAvatar(u,false,false));
-        const info=document.createElement("div");info.innerHTML='<b>@'+u+'</b><div class="muted">Друг</div>';row.appendChild(info);
-        section.appendChild(row);
+        const info=document.createElement("div");
+        info.innerHTML='<b>@'+u+'</b><div class="muted">Друг</div>';
+        row.appendChild(info);
+        section.insertBefore(row,people);
       }
     }
-  }catch(e){console.warn("Не удалось загрузить друзей:",e)}
-
-  const people=document.createElement("div");people.className="section-title";people.style.marginTop="24px";people.textContent="Люди";section.appendChild(people);
-  const find=document.createElement("button");find.className="btn secondary";find.style.width="100%";find.textContent="Найти друга по @username";find.onclick=()=>go("search");section.appendChild(find);
-  $("view").replaceChildren(section);
+  }catch(e){
+    console.warn("Не удалось загрузить друзей:",e);
+  }
 }
 function regenerateCode(){profile.identityCode=makeCode();localStorage.setItem("profile",JSON.stringify(profile));const a=JSON.parse(localStorage.getItem("account")||"null");if(a){a.identityCode=profile.identityCode;localStorage.setItem("account",JSON.stringify(a))}const profiles=JSON.parse(localStorage.getItem("userProfiles")||"{}");if(profile.username)profiles[profile.username.toLowerCase()]={avatar};localStorage.setItem("userProfiles",JSON.stringify(profiles));$("identityCode").textContent=profile.identityCode}
 let avatarImage=null,avatarScale=1,avatarX=0,avatarY=0,avatarDragging=false,avatarStartX=0,avatarStartY=0,avatarBaseX=0,avatarBaseY=0;
