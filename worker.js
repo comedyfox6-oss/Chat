@@ -49,7 +49,10 @@ export default {async fetch(request,env){
     const me=cleanUser(request.method==="POST"?d.sender:url.searchParams.get("username"));
     if(!me||!other)return json({error:"username_required"},400);
     const id=env.CHAT_ROOM.idFromName(pairRoom(me,other));
-    return proxy(await env.CHAT_ROOM.get(id).fetch(new Request("https://internal/chat",{method:request.method,headers:{"Content-Type":"application/json"},body:JSON.stringify({username:me,...d})})));
+    const target=new URL("https://internal/chat");
+    if(request.method==="GET")target.searchParams.set("username",me);
+    const init=request.method==="POST"?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:me,...d})}:{method:"GET"};
+    return proxy(await env.CHAT_ROOM.get(id).fetch(new Request(target.toString(),init)));
   }
 
   if(url.pathname==="/health"||url.pathname==="/api/health")return json({ok:true,service:"Chat API"});
