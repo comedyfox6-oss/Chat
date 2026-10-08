@@ -92,6 +92,16 @@ export class ChatRoom{
       }
       return json({friends,incoming,outgoing});
     }
+    if(url.pathname==="/registry/friend-respond"&&request.method==="POST"){
+      const d=await readJson(request),to=cleanUser(d.user),from=cleanUser(d.from),action=String(d.action||"");
+      if(!to||!from||!["accept","reject"].includes(action))return json({error:"invalid_request"},400);
+      const key="friend:"+[from,to].sort().join(":");
+      const item=await this.state.storage.get(key);
+      if(!item||item.status!=="pending"||item.to!==to)return json({error:"request_not_found"},404);
+      if(action==="reject"){await this.state.storage.delete(key);return json({ok:true,status:"rejected"})}
+      item.status="accepted";item.acceptedAt=Date.now();await this.state.storage.put(key,item);
+      return json({ok:true,status:"accepted"});
+    }
 
     if(request.headers.get("Upgrade")==="websocket"){
       const pair=new WebSocketPair(),[client,server]=Object.values(pair);
