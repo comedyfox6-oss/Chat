@@ -515,16 +515,19 @@ function renameCurrentAI(){if(!currentChatIsAI||isAssistant(currentChat))return;
     addBotTextMessage("Ошибка ИИ: "+e.message);
   }
 }
+function newLocalMessageId(){return "local-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2)}
 function addBotTextMessage(t){
   const empty=$("chatEmpty");if(empty)empty.remove();
+  const id=newLocalMessageId();
   const x=document.createElement("div");
   x.className="msg them";
+  x.dataset.localId=id;
   x.innerHTML='<div class="msg-actions"><button class="delete-btn">Удалить</button></div><div class="body"></div>';
   x.querySelector(".body").textContent=t;
   x.querySelector(".delete-btn").onclick=()=>deleteMessage(x);
   $("messages").appendChild(x);
   const items=loadMessages(currentChat);
-  items.push({type:"text",text:t,from:"bot",mine:false,sender:currentChat||""});
+  items.push({id,type:"text",text:t,from:"bot",mine:false,sender:currentChat||""});
   saveMessages(currentChat,items);
   scrollMessages();
 }
@@ -535,7 +538,7 @@ removeComposer();
 const saved=loadMessages(u);
 $("view").innerHTML='<section id="messages"><div class="chat-head"><div class="chat-meta"><button class="chat-back" onclick="renderChats()" aria-label="Назад">&lt;</button><div><div class="chat-title">@'+u+'</div><div class="chat-sub">'+(getTag(u,isAI))+'</div></div><div class="chat-actions"><button onclick="toggleChatMenu()" aria-label="Действия чата">⋮</button><div id="chatMenu" class="chat-menu"><button id="renameAIButton" class="rename" onclick="renameCurrentAI()"> Переименовать</button><button class="danger" onclick="exitChat()">Выйти из чата</button><button class="danger" onclick="deleteChatForMe()">Удалить чат у себя</button><button class="danger" onclick="deleteChatForEveryone()">Удалить чат у всех</button></div></div></div></div><div id="chatEmpty" class="empty" style="display:'+(saved.length?"none":"block")+'"><b>Начало диалога</b>Здесь пока нет сообщений.</div></section>';
 document.querySelector(".bottom").style.display="flex";const renameBtn=$("renameAIButton");if(renameBtn)renameBtn.style.display=(isAI&&!isAssistant(u)&&!isGroup)?"block":"none";
-for(const item of saved){const mine=typeof item.mine==="boolean"?item.mine:(item.from==="bot"?false:(item.sender?sameUser(item.sender,profile.username):true));if(item.type==="photo")addPhotoMessage(item.src,true,mine);else if(item.type==="audio")addAudioMessage(item.src,item.name,item.mime,true,mine);else if(item.type==="file")addFileMessage(item.src,item.name,item.mime,item.size,true,mine);else addTextMessage(item.text,true,mine,item.serverId||"")}
+for(const item of saved){const mine=typeof item.mine==="boolean"?item.mine:(item.from==="bot"?false:(item.sender?sameUser(item.sender,profile.username):true));if(item.type==="photo")addPhotoMessage(item.src,true,mine);else if(item.type==="audio")addAudioMessage(item.src,item.name,item.mime,true,mine);else if(item.type==="file")addFileMessage(item.src,item.name,item.mime,item.size,true,mine);else addTextMessage(item.text,true,mine,item.serverId||"",item.id||"")}
 const c=document.createElement("div");c.className="composer";c.innerHTML='<button class="attach" title="Фото, музыка или документ" aria-label="Прикрепить файл"></button><input id="photoInput" type="file" accept="image/*" hidden><input id="audioInput" type="file" accept="audio/*" hidden><input id="fileInput" type="file" accept=".pdf,.doc,.docx,.txt,.rtf,.xls,.xlsx,.ppt,.pptx" hidden><textarea id="text" placeholder="Написать сообщение…" rows="1"></textarea><button id="send" aria-label="Отправить"><svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="sendGradient" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#806fd0"/><stop offset=".52" stop-color="#8a78d8"/><stop offset="1" stop-color="#b5c96d"/></linearGradient></defs><path fill="url(#sendGradient)" d="M5 22.5 43 5 30 43 23 28 5 22.5Zm18.8 4.2L39 10.2 27.3 29.5l-3.5-2.8Z"/></svg></button>';
 document.querySelector(".app").appendChild(c);
 const attach=c.querySelector(".attach"), photo=c.querySelector("#photoInput"), audio=c.querySelector("#audioInput"), fileInput=c.querySelector("#fileInput");
@@ -570,15 +573,15 @@ $("text").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.prev
 }
 function sameUser(a,b){return String(a||"").replace(/^@/,"").trim().toLowerCase()===String(b||"").replace(/^@/,"").trim().toLowerCase()}
 function messageClass(mine){return mine?"msg me":"msg them"}
-function addTextMessage(t,restoring=false,mine=true,serverId=""){const empty=$("chatEmpty");if(empty)empty.remove();const x=document.createElement("div");x.className=messageClass(mine);if(serverId)x.dataset.serverId=serverId;x.innerHTML='<div class="msg-actions"><button class="delete-btn">Удалить у всех</button></div><div class="body" style="display:block!important;color:#4b4568!important;-webkit-text-fill-color:#4b4568!important;"></div>';x.querySelector(".body").textContent=t;x.querySelector(".delete-btn").onclick=()=>deleteMessage(x);$("messages").appendChild(x);if(!restoring){const items=loadMessages(currentChat);items.push({type:"text",text:t,from:"user",mine:true,sender:profile.username||""});saveMessages(currentChat,items)}scrollMessages()}
+function addTextMessage(t,restoring=false,mine=true,serverId="",localId=""){const empty=$("chatEmpty");if(empty)empty.remove();const id=localId||newLocalMessageId();const x=document.createElement("div");x.className=messageClass(mine);x.dataset.localId=id;if(serverId)x.dataset.serverId=serverId;x.innerHTML='<div class="msg-actions"><button class="delete-btn">Удалить у всех</button></div><div class="body" style="display:block!important;color:#4b4568!important;-webkit-text-fill-color:#4b4568!important;"></div>';x.querySelector(".body").textContent=t;x.querySelector(".delete-btn").onclick=()=>deleteMessage(x);$("messages").appendChild(x);if(!restoring){const items=loadMessages(currentChat);items.push({id,type:"text",text:t,from:"user",mine:true,sender:profile.username||""});saveMessages(currentChat,items)}scrollMessages()}
 function addPhotoMessage(src,restoring=false,mine=true){const empty=$("chatEmpty");if(empty)empty.remove();const x=document.createElement("div");x.className=messageClass(mine);x.innerHTML='<div class="msg-actions"><button class="delete-btn">Удалить фото</button></div><img alt="Фото сообщения">';x.querySelector("img").src=src;x.querySelector(".delete-btn").onclick=()=>deleteMessage(x);$("messages").appendChild(x);if(!restoring){const items=loadMessages(currentChat);items.push({type:"photo",src,from:"user",mine:true,sender:profile.username||""});saveMessages(currentChat,items)}scrollMessages()}
 function addAudioMessage(src,name,mime,restoring=false,mine=true){const empty=$("chatEmpty");if(empty)empty.remove();const x=document.createElement("div");x.className=messageClass(mine)+" file-msg";x.innerHTML='<div class="msg-actions"><button class="delete-btn">Удалить файл</button></div><div class="file-card"><div class="file-kind">♫</div><div class="file-info"><b class="file-name"></b><audio controls preload="metadata"></audio></div></div>';x.querySelector(".file-name").textContent=name||"Музыка";x.querySelector("audio").src=src;x.querySelector(".delete-btn").onclick=()=>deleteMessage(x);$("messages").appendChild(x);if(!restoring){const items=loadMessages(currentChat);items.push({type:"audio",src,name:name||"Музыка",mime:mime||"audio/*",from:"user",mine:true,sender:profile.username||""});saveMessages(currentChat,items)}scrollMessages()}
 function addFileMessage(src,name,mime,size,restoring=false,mine=true){const empty=$("chatEmpty");if(empty)empty.remove();const x=document.createElement("div");x.className=messageClass(mine)+" file-msg";x.innerHTML='<div class="msg-actions"><button class="delete-btn">Удалить файл</button></div><a class="file-card" target="_blank" rel="noopener"><div class="file-kind">▤</div><div class="file-info"><b class="file-name"></b><span class="file-size"></span></div><span class="file-open">Открыть</span></a>';const a=x.querySelector("a");a.href=src;x.querySelector(".file-name").textContent=name||"Документ";x.querySelector(".file-size").textContent=size?formatFileSize(size):"Документ";x.querySelector(".delete-btn").onclick=()=>deleteMessage(x);$("messages").appendChild(x);if(!restoring){const items=loadMessages(currentChat);items.push({type:"file",src,name:name||"Документ",mime:mime||"application/octet-stream",from:"user",mine:true,sender:profile.username||""});saveMessages(currentChat,items)}scrollMessages()}
 function formatFileSize(bytes){if(!bytes)return"";const units=["Б","КБ","МБ","ГБ"];let n=bytes,i=0;while(n>=1024&&i<units.length-1){n/=1024;i++}return(n>=10||i===0?n.toFixed(0):n.toFixed(1))+" "+units[i]}
 function deleteMessage(el){
-  const nodes=[...$("messages").children].filter(x=>x.classList.contains("msg"));
-  const index=nodes.indexOf(el);
   const items=loadMessages(currentChat);
+  const localId=el.dataset.localId||"";
+  const index=localId?items.findIndex(item=>item&&item.id===localId):[...$("messages").children].filter(x=>x.classList.contains("msg")).indexOf(el);
   const item=index>=0?items[index]:null;
   const serverId=el.dataset.serverId||item?.serverId||"";
   const finish=()=>{
