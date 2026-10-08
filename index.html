@@ -208,6 +208,9 @@ function connectChatSocket(chatUsername){
   const room=[me,other].sort().join("__").replace(/[^a-zA-Z0-9_а-яё-]/gi,"").slice(0,64);
   try{
     chatSocket=new WebSocket("wss://chatmes.comedyfox6.workers.dev/ws?room="+encodeURIComponent(room));
+    chatSocket.onopen=()=>{
+      if(currentChat.toLowerCase()===other)syncServerChat(chatUsername);
+    };
     chatSocket.onmessage=e=>{
       try{
         const packet=JSON.parse(e.data);
@@ -232,6 +235,13 @@ function connectChatSocket(chatUsername){
       }catch(err){console.warn("WS message error:",err)}
     };
     chatSocket.onerror=()=>{};
+    chatSocket.onclose=()=>{
+      if(currentChat.toLowerCase()===other&&!currentChatIsAI&&!currentChatIsGroup){
+        setTimeout(()=>{
+          if(currentChat.toLowerCase()===other)connectChatSocket(chatUsername);
+        },1500);
+      }
+    };
   }catch(e){console.warn("WS connect error:",e)}
 }
 async function syncServerChat(chatUsername){
