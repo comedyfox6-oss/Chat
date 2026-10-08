@@ -158,7 +158,7 @@ async function api(path, options={}) {
 async function syncCurrentUser(){
   const u=String(profile.username||"").replace(/^@/,"").trim().toLowerCase();
   const name=String(profile.displayName||u||"Пользователь").trim();
-  if(!u)return false;
+  if(!u)throw new Error("У профиля нет username");
   try{
     const data=await api("/api/users",{
       method:"POST",
@@ -171,11 +171,12 @@ async function syncCurrentUser(){
         personality:""
       })
     });
-    return !!(data&&data.user);
+    if(data&&data.user)return true;
+    throw new Error("Сервер не вернул созданного пользователя");
   }catch(e){
     if(e.message==="username_taken")return true;
     console.warn("Не удалось синхронизировать профиль:",e);
-    return false;
+    throw new Error(e.message||String(e));
   }
 }
 
@@ -629,7 +630,12 @@ function openFound(u){
   const target=String(u||"").replace(/^@/,"").toLowerCase();
   if(target===String(profile.username||"").toLowerCase()){openChat(p.name||u,!!p.isBot,false);return}
   try{
-    if(!await syncCurrentUser()){alert("Не удалось зарегистрировать твой профиль на сервере. Открой консоль/логи Worker: регистрация вернула ошибку.");return}
+    try{
+      await syncCurrentUser();
+    }catch(e){
+      alert("Регистрация профиля не удалась: "+(e.message||String(e)));
+      return;
+    }
     if(!await ensureServerUser(target)){alert("Пользователь не найден на сервере. Пусть он один раз войдёт в аккаунт и откроет приложение.");return}
     const data=await api("/api/friends?username="+encodeURIComponent(profile.username||""));
     const incoming=(data.incoming||[]).find(x=>x.from===target);
