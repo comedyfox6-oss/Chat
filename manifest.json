@@ -1,0 +1,16 @@
+{
+  "name": "Чат",
+  "short_name": "Чат",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "./icon.jpg",
+      "sizes": "691x691",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
