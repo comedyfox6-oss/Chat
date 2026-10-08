@@ -4,6 +4,39 @@ async function readJson(r){try{return await r.json()}catch{return {}}}
 const cleanUser=u=>String(u||"").replace(/^@/,"").trim().toLowerCase().replace(/[^a-z0-9_а-яё-]/gi,"").slice(0,32);
 const pairRoom=(a,b)=>[cleanUser(a),cleanUser(b)].sort().join("__")||"default";
 
+const b64u=(v)=>{const a=typeof v==="string"?new TextEncoder().encode(v):new Uint8Array(v);let s="";for(let n=0;n<a.length;n+=0x8000)s+=String.fromCharCode(...a.subarray(n,n+0x8000));return btoa(s).replace(/\\+/g,"-").replace(/\\//g,"_").replace(/=+$/,"")};
+const b64uJson=(o)=>b64u(JSON.stringify(o));
+const rawPublicKey=(j)=>{const x=Uint8Array.from(atob(j.x.replace(/-/g,"+").replace(/_/g,"/")+"=="),c=>c.charCodeAt(0));const y=Uint8Array.from(atob(j.y.replace(/-/g,"+").replace(/_/g,"/")+"=="),c=>c.charCodeAt(0));const out=new Uint8Array(65);out[0]=4;out.set(x,1);out.set(y,33);return out};
+async function vapid(env){
+  const reg=registry(env),key="vapid:keys";let k=await reg.fetch(new Request("https://internal/registry/vapid",{method:"GET"}));let d=await k.json();
+  if(d&&d.keys)return d.keys;
+  const pair=await crypto.subtle.generateKey({name:"ECDSA",namedCurve:"P-256"},true,["sign","verify"]);
+  const privateJwk=await crypto.subtle.exportKey("jwk",pair.privateKey),publicJwk=await crypto.subtle.exportKey("jwk",pair.publicKey);
+  const keys={privateJwk,publicJwk,publicKey:b64u(rawPublicKey(publicJwk))};
+  const saved=await reg.fetch(new Request("https://internal/registry/vapid",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(keys)}));
+  return (await saved.json()).keys||keys;
+}
+async function vapidAuth(env,endpoint){
+  const keys=await vapid(env),aud=new URL(endpoint).origin;
+  const header={typ:"JWT",alg:"ES256"},payload={aud,exp:Math.floor(Date.now()/1000)+3600,sub:"mailto:chat@comedyfox6.workers.dev"};
+  const input=b64uJson(header)+"."+b64uJson(payload);
+  const privateKey=await crypto.subtle.importKey("jwk",keys.privateJwk,{name:"ECDSA",namedCurve:"P-256"},false,["sign"]);
+  const sig=new Uint8Array(await crypto.subtle.sign({name:"ECDSA",hash:"SHA-256"},privateKey,new TextEncoder().encode(input)));
+  return "vapid t="+input+"."+b64u(sig)+", k="+keys.publicKey;
+}
+async function pushToUser(env,username){
+  const reg=registry(env),r=await reg.fetch("https://internal/registry/push?username="+encodeURIComponent(cleanUser(username)));
+  const d=await r.json();if(!Array.isArray(d.subscriptions))return;
+  for(const s of d.subscriptions){
+    try{
+      const auth=await vapidAuth(env,s.endpoint);
+      const resp=await fetch(s.endpoint,{method:"POST",headers:{"TTL":"60","Authorization":auth}});
+      if(resp.status===404||resp.status===410)await reg.fetch(new Request("https://internal/registry/push-delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:cleanUser(username),id:s.id})}));
+    }catch{}
+  }
+}
+
+
 async function handleAI(request,env){
   if(!env.GROQ_API_KEY)return json({error:"GROQ_API_KEY_not_configured"},500);
   const d=await readJson(request),messages=Array.isArray(d.messages)?d.messages:[];
@@ -30,6 +63,8 @@ export default {async fetch(request,env){
   if(url.pathname==="/api/search"&&request.method==="GET"){
     return proxy(await registry(env).fetch("https://internal/registry/search?q="+encodeURIComponent(cleanUser(url.searchParams.get("q")))));
   }
+  if(url.pathname==="/api/push/config"&&request.method==="GET"){const keys=await vapid(env);return json({publicKey:keys.publicKey});}
+  if(url.pathname==="/api/push/subscribe"&&request.method==="POST"){const d=await readJson(request),username=cleanUser(d.username),subscription=d.subscription;if(!username||!subscription?.endpoint)return json({error:"subscription_required"},400);return proxy(await registry(env).fetch(new Request("https://internal/registry/push-subscribe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username,subscription})})));}
   if(url.pathname==="/api/friends/request"&&request.method==="POST"){
     const d=await readJson(request),from=cleanUser(d.from),to=cleanUser(d.to);
     if(!from||!to)return json({error:"users_required"},400);
@@ -52,7 +87,9 @@ export default {async fetch(request,env){
     const target=new URL("https://internal/chat");
     if(request.method==="GET")target.searchParams.set("username",me);
     const init=request.method==="POST"?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:me,...d})}:{method:"GET"};
-    return proxy(await env.CHAT_ROOM.get(id).fetch(new Request(target.toString(),init)));
+    const chatResponse=await env.CHAT_ROOM.get(id).fetch(new Request(target.toString(),init));
+    if(request.method==="POST"&&chatResponse.ok)pushToUser(env,other).catch(()=>{});
+    return proxy(chatResponse);
   }
 
   if(url.pathname==="/health"||url.pathname==="/api/health")return json({ok:true,service:"Chat API"});
@@ -74,6 +111,11 @@ export class ChatRoom{
       await this.state.storage.put("user:"+u,user);
       return json({ok:true,user});
     }
+    if(url.pathname==="/registry/vapid"&&request.method==="GET"){const keys=await this.state.storage.get("vapid");return json({keys:keys||null});}
+    if(url.pathname==="/registry/vapid"&&request.method==="POST"){const d=await readJson(request);await this.state.storage.put("vapid",d);return json({keys:d});}
+    if(url.pathname==="/registry/push-subscribe"&&request.method==="POST"){const d=await readJson(request),u=cleanUser(d.username),s=d.subscription;if(!u||!s?.endpoint)return json({error:"invalid_subscription"},400);const id=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s.endpoint));const idb=Array.from(new Uint8Array(id)).map(x=>x.toString(16).padStart(2,"0")).join("");await this.state.storage.put("push:"+u+":"+idb,{id:idb,endpoint:s.endpoint,expirationTime:s.expirationTime||null,keys:s.keys||{}});return json({ok:true});}
+    if(url.pathname==="/registry/push"&&request.method==="GET"){const u=cleanUser(url.searchParams.get("username")),list=await this.state.storage.list({prefix:"push:"+u+":"}),subscriptions=[];for(const [,s] of list)subscriptions.push(s);return json({subscriptions});}
+    if(url.pathname==="/registry/push-delete"&&request.method==="POST"){const d=await readJson(request),u=cleanUser(d.username),id=String(d.id||"");if(u&&id)await this.state.storage.delete("push:"+u+":"+id);return json({ok:true});}
     if(url.pathname==="/registry/search"&&request.method==="GET"){
       const q=cleanUser(url.searchParams.get("q")),list=await this.state.storage.list({prefix:"user:"}),users=[];
       for(const [,u] of list)if(!q||u.username.includes(q))users.push(u);
