@@ -64,9 +64,15 @@ export default {async fetch(request,env){
   }
   if((url.pathname==="/api/search"||url.pathname==="/api/users/all")&&request.method==="GET"){
     try{
+      if(!env.CHAT_ROOM)return json({error:"registry_binding_missing",message:"CHAT_ROOM binding is missing"},500);
       const raw=url.pathname==="/api/users/all"?"":String(url.searchParams.get("q")||"");
-      return proxy(await registry(env).fetch("https://internal/registry/search?q="+encodeURIComponent(raw)));
-    }catch(e){return json({error:"registry_error",message:e?.message||String(e)},500)}
+      const reg=registry(env);
+      if(!reg)return json({error:"registry_unavailable",message:"Registry Durable Object is unavailable"},500);
+      const response=await reg.fetch("https://internal/registry/search?q="+encodeURIComponent(raw));
+      return proxy(response);
+    }catch(e){
+      return json({error:"registry_error",message:e?.stack||e?.message||String(e)},500);
+    }
   }
   if(url.pathname==="/api/push/config"&&request.method==="GET"){const keys=await vapid(env);return json({publicKey:keys.publicKey});}
   if(url.pathname==="/api/push/subscribe"&&request.method==="POST"){const d=await readJson(request),username=cleanUser(d.username),subscription=d.subscription;if(!username||!subscription?.endpoint)return json({error:"subscription_required"},400);return proxy(await registry(env).fetch(new Request("https://internal/registry/push-subscribe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username,subscription})})));}
