@@ -1,0 +1,2 @@
+self.addEventListener("push",()=>{self.registration.showNotification("Чат",{body:"Новое сообщение",icon:"./icon.jpg",badge:"./icon.jpg",tag:"chat-message"}).catch(()=>{})});
+self.addEventListener("notificationclick",event=>{event.notification.close();event.waitUntil(clients.matchAll({type:"window",includeUncontrolled:true}).then(list=>{for(const c of list){if("focus" in c)return c.focus()}if(clients.openWindow)return clients.openWindow("./")}))});
